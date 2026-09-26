@@ -25,10 +25,6 @@
 
 ---
 
-> [!IMPORTANT]
-> PeekaPoo is a wellness **screening** aid, **not** a diagnostic device. Every risk decision is made by
-> fixed, reviewable rules ([`peekapoo/scoring.py`](peekapoo/scoring.py)); the language model only rewords them.
-
 ## ✨ Highlights
 
 <table>
