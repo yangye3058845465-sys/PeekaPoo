@@ -11,21 +11,7 @@ re-architected for PeekaPoo's edge-first design on Huawei hardware, and extended
 
 ## Architecture
 
-```
- Sensing                 Edge control            Edge inference (Atlas 200I DK A2)              Cloud / App
- ───────                 ────────────            ──────────────────────────────────             ───────────
- seat pressure / PIR ─┐                          camera frame (memory only)
- 8-ch gas array ──────┼─► Hi3861 ──UART JSON──►   → colour-card correction
- user button ─────────┘   (occupancy, LED,        → state CNN  CLE / STO / TPI / URI
-                           30 s end rule,           ├ STO → Bristol 1-7 CNN + condition CNN
-                           gas sampling)            └ URI → urine colour → Hydration Score
-                                                  session end:
-                                                    → personal gas baseline (robust z + 3-day persistence)
-                                                    → triage rules  normal / watch / consult
-                                                    → small LLM (Qwen2.5-0.5B) → advice text     ──► IoTDA (MQTT): scores, alerts
-                                                    → SQLite history                             ──► OBS: session JSON
-                                                                                                  ──► HarmonyOS app
-```
+![PeekaPoo component architecture](docs/huawei_stack.jpg)
 
 Raw images never leave the Atlas and are never written to disk; only the fields listed in
 `cloud_sync.CLOUD_FIELDS` are uploaded.
