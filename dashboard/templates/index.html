@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PeekaPoo Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* palette kept from PHIND display_results.html */
+  :root { --bg:#1C2230; --card:#252D3F; --text:#FFFFFF; --muted:#B0BEC5; --accent:#00E5FF;
+          --normal:#00C853; --watch:#FFA726; --consult:#FF5252; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Roboto','Poppins',sans-serif; margin:0; }
+  .container { max-width:1100px; margin:0 auto; padding:16px; }
+  header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  h1 { font-size:28px; margin:8px 0; }
+  select, input, button { font-size:16px; border-radius:8px; border:1px solid #3A4560; background:var(--card); color:var(--text); padding:8px 12px; }
+  button { background:var(--accent); color:#00262B; border:none; cursor:pointer; font-weight:bold; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:16px; }
+  .card { background:var(--card); border-radius:15px; padding:16px; }
+  .card h2 { font-size:15px; color:var(--muted); margin:0 0 8px; font-weight:normal; text-transform:uppercase; letter-spacing:.5px; }
+  .big { font-size:56px; font-weight:bold; }
+  .unit { font-size:18px; color:var(--muted); }
+  .ring { position:relative; height:200px; }
+  .ring .center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:bold; pointer-events:none; }
+  .wide { grid-column:1/-1; }
+  .badge { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:bold; color:#111; }
+  .advice { font-size:18px; line-height:1.5; margin:10px 0; }
+  .disclaimer { font-size:13px; color:var(--muted); }
+  .flags li { margin:4px 0; }
+  .ask { display:flex; gap:8px; margin-top:12px; }
+  .ask input { flex:1; min-width:0; }
+  #answer { margin-top:10px; white-space:pre-wrap; }
+  .source { font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>PeekaPoo</h1>
+    <select id="user">
+      {% for u in users %}<option value="{{ u }}" {% if u == user %}selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select>
+  </header>
+
+  <div class="grid">
+    <div class="card wide">
+      <h2>AI gut-health advisor</h2>
+      <span class="badge" id="level">-</span>
+      <div class="advice" id="advice">No visits recorded yet.</div>
+      <ul class="flags" id="flags"></ul>
+      <div class="source" id="advice-source"></div>
+      <div class="ask">
+        <input id="question" placeholder="Ask about your results, e.g. why is my score lower this week?">
+        <button id="ask-btn">Ask</button>
+      </div>
+      <div id="answer"></div>
+      <p class="disclaimer" id="disclaimer"></p>
+    </div>
+
+    <div class="card"><h2>Digestive Score</h2><span class="big" id="dig">-</span><span class="unit"> /100</span></div>
+    <div class="card"><h2>Hydration Score</h2><span class="big" id="hyd">-</span><span class="unit"> /100</span></div>
+    <div class="card"><h2>Last visit</h2>
+      <div><span class="big" id="total">-</span><span class="unit"> s total</span></div>
+      <div><span class="unit">defecation </span><span id="defec">-</span><span class="unit"> s</span></div>
+    </div>
+
+    <div class="card"><h2>Stool pattern (last stool visit)</h2>
+      <div class="ring"><canvas id="ring-cond"></canvas><div class="center" id="cond-center">-</div></div></div>
+    <div class="card"><h2>Bristol type (last stool visit)</h2>
+      <div class="ring"><canvas id="ring-bs"></canvas><div class="center" id="bs-center">-</div></div></div>
+
+    <div class="card wide"><h2>Daily trend</h2><canvas id="trend" height="110"></canvas></div>
+  </div>
+</div>
+
+<script>
+const LEVEL_COLOR = {normal:'#00C853', watch:'#FFA726', consult:'#FF5252'};
+const charts = {};
+
+function ring(id, labels, data, colors) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type:'doughnut',
+    data:{labels, datasets:[{data, backgroundColor:colors, borderColor:'#252D3F', borderWidth:1}]},
+    options:{cutout:'70%', maintainAspectRatio:false, plugins:{legend:{display:false}}}
+  });
+}
+
+function trend(days) {
+  if (charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(document.getElementById('trend'), {
+    type:'line',
+    data:{labels:days.map(d => d.day.slice(5)), datasets:[
+      {label:'Digestive', data:days.map(d => d.digestive_score), borderColor:'#00E5FF', spanGaps:true},
+      {label:'Hydration', data:days.map(d => d.hydration_score), borderColor:'#FFA726', spanGaps:true},
+    ]},
+    options:{scales:{y:{min:0, max:100, ticks:{color:'#B0BEC5'}, grid:{color:'#3A4560'}},
+                     x:{ticks:{color:'#B0BEC5'}, grid:{color:'#3A4560'}}},
+             plugins:{legend:{labels:{color:'#FFFFFF'}}}}
+  });
+}
+
+async function load() {
+  const user = document.getElementById('user').value;
+  const r = await (await fetch('/api/summary?user=' + encodeURIComponent(user))).json();
+  const lvl = r.triage.level;
+  const badge = document.getElementById('level');
+  badge.textContent = lvl.toUpperCase();
+  badge.style.background = LEVEL_COLOR[lvl];
+  document.getElementById('flags').innerHTML = r.triage.flags.map(f => `<li>${f.detail}</li>`).join('');
+  if (r.last) {
+    const a = r.last.advice || {};
+    document.getElementById('advice').textContent = a.text || '';
+    document.getElementById('advice-source').textContent = a.source ? `generated by: ${a.source}` : '';
+    document.getElementById('disclaimer').textContent = a.disclaimer || '';
+    document.getElementById('total').textContent = Math.round(r.last.total_time_s ?? 0);
+    document.getElementById('defec').textContent = Math.round(r.last.defecation_time_s ?? 0);
+  }
+  const lastDay = [...r.days].reverse();
+  const dig = lastDay.find(d => d.digestive_score != null), hyd = lastDay.find(d => d.hydration_score != null);
+  document.getElementById('dig').textContent = dig ? dig.digestive_score : '-';
+  document.getElementById('hyd').textContent = hyd ? hyd.hydration_score : '-';
+  if (r.last_stool) {
+    const c = r.last_stool.condition_probs, b = r.last_stool.bristol_probs;
+    ring('ring-cond', Object.keys(c), Object.values(c), ['#FF6D00', '#00C853', '#FFA726']);
+    ring('ring-bs', Object.keys(b), Object.values(b), ['#D1C4E9','#B39DDB','#9575CD','#7E57C2','#673AB7','#5E35B1','#512DA8']);
+    document.getElementById('cond-center').textContent = r.last_stool.condition[0];
+    document.getElementById('bs-center').textContent = 'BS' + r.last_stool.bristol_type;
+  }
+  trend(r.days);
+}
+
+async function ask() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+  const out = document.getElementById('answer');
+  out.textContent = 'Thinking...';
+  const r = await (await fetch('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user:document.getElementById('user').value, question:q})})).json();
+  out.textContent = (r.text || r.error) + (r.source ? `\n(${r.source})` : '');
+}
+
+document.getElementById('user').addEventListener('change', load);
+document.getElementById('ask-btn').addEventListener('click', ask);
+document.getElementById('question').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+load();
+</script>
+</body>
+</html>

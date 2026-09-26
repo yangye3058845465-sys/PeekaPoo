@@ -1,0 +1,12 @@
+# Place this folder under applications/sample/wifi-iot/app/ in the OpenHarmony
+# Hi3861 source tree and add "peekapoo:peekapoo_ctrl" to app/BUILD.gn features.
+
+static_library("peekapoo_ctrl") {
+  sources = [ "peekapoo_ctrl.c" ]
+  include_dirs = [
+    "//utils/native/lite/include",
+    "//kernel/liteos_m/kal/cmsis",
+    "//base/iot_hardware/peripheral/interfaces/kits",
+    "//device/hisilicon/hispark_pegasus/sdk_liteos/include",
+  ]
+}
