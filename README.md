@@ -85,6 +85,14 @@ python dashboard/app.py                                                # http://
 Without trained models the classifiers are RANDOM placeholders (a warning is printed) - the
 pipeline runs, but the labels are meaningless until you train.
 
+## Dataset
+
+Our dataset is hosted on Google Drive (not stored in this repository):
+https://drive.google.com/file/d/1aVG-MeGbs6UDDamuYg-NkCbmNdBAvjhE/view?usp=sharing
+
+Download it and arrange it as one folder per class (CLE/STO/TPI/URI for `state`, BS1..BS7 for
+`bristol`) before training.
+
 ## Train and deploy the vision models
 
 ```bash
