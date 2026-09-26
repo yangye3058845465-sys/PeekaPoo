@@ -1,20 +1,8 @@
-# scoring.py
-"""
-Scores and the deterministic triage rules.
-
-IMPORTANT: every health decision (risk level, which flags fire, whether to
-suggest seeing a clinician) is made HERE by fixed, reviewable rules. The small
-LLM in llm_advisor.py only rewords these decisions into friendly language; it
-is never allowed to raise, lower or invent a risk. PeekaPoo is a screening
-and wellness aid, not a diagnostic device.
-"""
-
 import datetime as dt
 from collections import defaultdict
 
 import numpy as np
 
-# Digestive Score per Bristol type: 3-5 is the healthy band, 4 is ideal.
 BS_SCORE = {1: 40, 2: 60, 3: 85, 4: 100, 5: 85, 6: 60, 7: 40}
 
 LEVELS = ["normal", "watch", "consult"]
@@ -33,7 +21,6 @@ def day_of(ts):
 
 
 def daily_summary(sessions):
-    """Group session records by calendar day -> list of per-day dicts, oldest first."""
     days = defaultdict(list)
     for s in sessions:
         days[day_of(s["start_ts"])].append(s)
@@ -69,10 +56,6 @@ def _streak(days, pred):
 
 
 def triage(days, gas_eval, today=None):
-    """
-    days: output of daily_summary (oldest first). gas_eval: GasBaseline.evaluate().
-    Returns {"level": "normal"|"watch"|"consult", "flags": [{"code", "level", "detail"}]}
-    """
     flags = []
     stool_days = [d for d in days if d["bristol_mean"] is not None]
 
@@ -91,7 +74,7 @@ def triage(days, gas_eval, today=None):
     hyd_days = [d for d in days if d["hydration_score"] is not None]
     dry = _streak(hyd_days, lambda d: d["hydration_score"] < 50)
     if dry >= 2:
-        lvl = "consult" if loose >= 2 else "watch"   # diarrhoea + dehydration together escalates
+        lvl = "consult" if loose >= 2 else "watch"
         flags.append({"code": "LOW_HYDRATION", "level": lvl, "detail": f"dark urine (low hydration) on {dry} days in a row"})
 
     if days:

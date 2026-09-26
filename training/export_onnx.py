@@ -1,12 +1,3 @@
-# export_onnx.py
-"""
-state_dict (.pt) -> ONNX, the input format for Ascend ATC (see convert_om.sh).
-
-    python training/export_onnx.py --task state
-    python training/export_onnx.py --task bristol
-    python training/export_onnx.py --task condition
-"""
-
 import argparse
 import sys
 from pathlib import Path

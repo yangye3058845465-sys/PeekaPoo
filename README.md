@@ -186,6 +186,11 @@ Download it and arrange it as one folder per class before training:
 | `bristol` | `BS1` … `BS7` |
 | `condition` | derived from `BS1`–`BS7` with `--from-bristol` (1–2 constipation, 3–5 normal, 6–7 diarrhoea) |
 
+## 🔌 Hi3861 Firmware
+
+Copy `hi3861_firmware/` to `applications/sample/wifi-iot/app/peekapoo/` in the OpenHarmony Hi3861 source tree,
+add `"peekapoo:peekapoo_ctrl"` to the `features` list in `app/BUILD.gn`, then build and flash as usual.
+
 ## 🏋 Train & Deploy the Vision Models
 
 ```bash

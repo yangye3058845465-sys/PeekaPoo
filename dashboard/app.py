@@ -1,19 +1,3 @@
-# app.py
-"""
-Local web dashboard - replaces PHIND's Django `analysis` app (views.py,
-display_results.html, dynamodb.py, urls.py, settings.py, manage.py).
-
-PHIND's view scanned the whole DynamoDB table on every page load and drew
-matplotlib PNGs server-side. Here the page reads the local SQLite history,
-charts are drawn client-side with Chart.js, and there is a new "AI advisor"
-card plus a question box served by the on-device LLM.
-
-This is a demo / debugging front end on the device's LAN. The product front
-end is the HarmonyOS app, which reads the same data from Huawei Cloud.
-
-    python dashboard/app.py            # http://<atlas-ip>:8000/
-"""
-
 import sys
 from pathlib import Path
 
@@ -35,7 +19,7 @@ _advisor = None
 
 def advisor():
     global _advisor
-    if _advisor is None:  # load the LLM lazily, on the first question
+    if _advisor is None:
         _advisor = GutAdvisor(CONFIG)
     return _advisor
 

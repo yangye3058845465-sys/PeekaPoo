@@ -1,8 +1,7 @@
-# PC / ModelArts notebook: training, export, simulation
 numpy
 pillow
 torch
 torchvision
 onnx
 flask
-transformers                # optional: run the LLM with --llm_backend transformers
+transformers

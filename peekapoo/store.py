@@ -1,13 +1,3 @@
-# store.py
-"""
-Local session history on the Atlas (SQLite).
-
-PHIND kept everything in DynamoDB and computed history in the cloud. PeekaPoo
-needs the history on the device, because the personal baseline and the LLM
-context are computed locally. The `synced` column doubles as an offline queue:
-records that failed to upload are retried by cloud_sync.
-"""
-
 import json
 import sqlite3
 import time

@@ -1,20 +1,3 @@
-# run_edge.py
-"""
-PeekaPoo edge node - entry point on the Atlas 200I DK A2.
-Replaces PHIND's main.py (Raspberry Pi) + Lambda + EC2 analysis in one process.
-
-    Hi3861 (occupancy, gas array, LED)  --UART-->  this process
-        occupancy on  -> start session, capture 1 frame/s into memory
-        each frame    -> colour correction -> state / Bristol / condition CNNs
-                         (+ urine colour -> hydration if state == URI)
-        occupancy off -> aggregate session -> personal baseline -> triage rules
-                         -> small LLM advice -> local SQLite -> Huawei Cloud
-
-Usage
-    python run_edge.py                      # real hardware
-    python run_edge.py --simulate --once    # PC demo, no hardware, one visit
-"""
-
 import argparse
 import collections
 import glob
@@ -56,7 +39,6 @@ class EdgeNode:
         self.store = SessionStore(cfg.db_path)
         self.cloud = CloudSync(cfg, self.store)
 
-    # ---- camera thread callback ------------------------------------------------
     def on_frame(self, frame, ts):
         frame, method = correct_frame(frame, self.cfg.card_patch_boxes, self.cfg.card_patch_ref_rgb)
         result = self.analyzer.analyze(frame)
@@ -69,7 +51,6 @@ class EdgeNode:
         print(f"[frame] {result['state']}" + (f" BS-probs top={max(result['bristol_probs'], key=result['bristol_probs'].get)}"
                                               if "bristol_probs" in result else ""))
 
-    # ---- sensor events -----------------------------------------------------------
     def handle_events(self):
         while not self.stop_event.is_set():
             try:

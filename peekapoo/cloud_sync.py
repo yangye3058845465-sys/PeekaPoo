@@ -1,25 +1,9 @@
-# cloud_sync.py
-"""
-Module 5 - result sync to Huawei Cloud. Replaces PHIND's s3_upload.py,
-the Lambda function and DynamoDB.
-
-PHIND uploaded every raw JPEG to S3. PeekaPoo uploads ONLY the session record
-(scores, Bristol type, flags, advice text) - see `cloud_payload()`, which is an
-explicit allow-list, so nothing unexpected can leak even if the record grows.
-
-  * IoTDA (MQTT)  - device shadow properties (latest scores) and an event when
-                    triage level is "watch"/"consult"; the HarmonyOS app
-                    subscribes to these for alerts.
-  * OBS           - one JSON object per session for long-term history/trends.
-"""
-
 import hashlib
 import hmac
 import json
 import ssl
 import time
 
-# Fields allowed to leave the device.
 CLOUD_FIELDS = (
     "user", "start_ts", "end_ts", "total_time_s", "defecation_time_s",
     "has_stool", "has_urine", "bristol_type", "bristol_mean", "bristol_probs",
@@ -33,7 +17,6 @@ def cloud_payload(record):
 
 
 def iotda_password(secret, timestamp):
-    """IoTDA MQTT password = HMAC-SHA256(key=timestamp YYYYMMDDHH, msg=device secret)."""
     return hmac.new(timestamp.encode(), secret.encode(), hashlib.sha256).hexdigest()
 
 
@@ -72,7 +55,7 @@ class IoTDAClient:
 
 class OBSClient:
     def __init__(self, server, bucket, ak, sk):
-        from obs import ObsClient  # pip install esdk-obs-python
+        from obs import ObsClient
         self.client = ObsClient(access_key_id=ak, secret_access_key=sk, server=server)
         self.bucket = bucket
 
@@ -86,8 +69,6 @@ class OBSClient:
 
 
 class CloudSync:
-    """Pushes unsynced records from the local store; silently stays offline if not configured."""
-
     def __init__(self, cfg, store):
         self.store = store
         self.iot = self.obs = None

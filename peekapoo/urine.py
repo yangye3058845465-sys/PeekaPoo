@@ -1,19 +1,8 @@
-# urine.py
-"""
-Urine colour -> Hydration Score (new in PeekaPoo, PHIND only detected "URI").
-
-After colour correction, the median colour of the bowl-water ROI is matched to
-an 8-level urine colour chart (level 1 = pale/well hydrated, 8 = dark/dehydrated)
-by nearest distance in CIELAB. Toilet water dilutes urine, so the chart RGB
-values below are STARTING POINTS and must be recalibrated on our own bowl
-(capture known dilutions and replace URINE_CHART_RGB).
-"""
-
 import numpy as np
 
 from .color_correction import srgb_to_linear
 
-# Approximate 8-level urine colour chart (sRGB), pale -> dark.
+# TODO: calibrate on our bowl
 URINE_CHART_RGB = np.array([
     [250, 250, 225],
     [250, 245, 190],
@@ -25,7 +14,6 @@ URINE_CHART_RGB = np.array([
     [170, 115, 35],
 ], dtype=np.float32)
 
-# Level -> Hydration Score (0-100)
 LEVEL_SCORE = {1: 100, 2: 95, 3: 80, 4: 65, 5: 50, 6: 35, 7: 20, 8: 10}
 
 

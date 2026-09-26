@@ -1,14 +1,11 @@
 __pycache__/
 *.pyc
-# trained weights, converted models and LLM files are large - share them separately
 models/
 *.pt
 *.pth
 *.onnx
 *.om
 *.gguf
-# local session history (health data)
 data/
 *.db
-# credentials
 .env

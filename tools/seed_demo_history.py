@@ -1,13 +1,3 @@
-# seed_demo_history.py
-"""
-Writes synthetic past sessions into the local SQLite store so the personal
-baseline, triage rules and LLM advice can be demonstrated without waiting
-two weeks. DEMO DATA ONLY - clearly tagged with "synthetic": true.
-
-    python tools/seed_demo_history.py --user user1 --days 14
-    python tools/seed_demo_history.py --user user2 --days 14 --scenario constipation_gas
-"""
-
 import argparse
 import random
 import sys

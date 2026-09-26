@@ -1,10 +1,4 @@
 #!/bin/bash
-# ONNX -> Ascend offline model (.om) with ATC. Run on the Atlas 200I DK A2
-# (or any machine with the CANN toolkit). Atlas 200I DK A2 = Ascend 310B4.
-#
-#   bash training/convert_om.sh            # converts state, bristol, condition
-#
-# Check your SoC name with `npu-smi info` and change SOC_VERSION if needed.
 
 set -e
 source /usr/local/Ascend/ascend-toolkit/set_env.sh

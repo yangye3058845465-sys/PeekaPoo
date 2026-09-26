@@ -1,10 +1,9 @@
-# Atlas 200I DK A2 (Ubuntu 22.04 aarch64, CANN preinstalled on the official image)
 numpy
 pillow
-opencv-python-headless      # camera capture
-pyserial                    # UART link to Hi3861
-paho-mqtt                   # Huawei Cloud IoTDA
-esdk-obs-python             # Huawei Cloud OBS
-flask                       # local dashboard (optional)
-llama-cpp-python            # small LLM on the ARM CPU (builds from source on aarch64, ~10 min)
-# ais_bench                 # .om inference on the NPU - install the wheel from the ais_bench GitHub releases
+opencv-python-headless
+pyserial
+paho-mqtt
+esdk-obs-python
+flask
+llama-cpp-python
+# ais_bench

@@ -1,31 +1,3 @@
-# llm_advisor.py
-"""
-Small on-device LLM that turns PeekaPoo's numbers into plain-language advice.
-
-PHIND stopped at charts (ring charts of class percentages, a BS curve); a user
-still had to interpret "BS2 62%" themselves. PeekaPoo adds a small language
-model (default: Qwen2.5-0.5B-Instruct, ~0.5B parameters, 4-bit GGUF ~400 MB)
-running on the Atlas 200I DK A2 so that:
-  * after every visit the user gets a 2-3 sentence explanation + tips, and
-  * the app can ask follow-up questions ("why is my score lower this week?").
-
-Safety design - the LLM is a *writer*, not a *decider*:
-  1. Risk level and flags come from scoring.triage() (fixed rules). The LLM
-     receives them as facts and is told not to change them.
-  2. The LLM only sees structured numbers - never images, never raw sensor data.
-  3. Every output passes check_output(): no diagnoses, no drug doses, no
-     invented numbers, and a clinician mention whenever level == "consult".
-     A failed check falls back to a deterministic template.
-  4. Questions mentioning emergency symptoms (blood, black stool, severe pain...)
-     bypass the LLM and get a fixed "seek medical care" answer.
-  5. The medical disclaimer is appended by code, not generated.
-
-Backends:
-  "llamacpp"     - llama-cpp-python + GGUF, runs on the Atlas ARM CPU (recommended)
-  "transformers" - HF transformers, for PC development (cuda/cpu) or torch_npu
-  "template"     - no model at all; deterministic text (fallback & unit tests)
-"""
-
 import re
 
 DISCLAIMER = ("PeekaPoo is a wellness screening aid, not a medical diagnosis. "
@@ -61,11 +33,7 @@ TASK_REPORT = ("Write a short message for the user about this toilet visit: one 
                "then 2 or 3 short practical tips (water, fibre, movement, routine) that fit the data.")
 
 
-# ----------------------------------------------------------------------------- facts
-
-
 def build_facts(session, days, triage_result):
-    """Compact, model-friendly bullet list. Only these facts reach the LLM."""
     lines = []
     if session:
         if session.get("has_stool"):
@@ -92,11 +60,7 @@ def build_facts(session, days, triage_result):
     return "\n".join("- " + l for l in lines)
 
 
-# ----------------------------------------------------------------------------- guard
-
-
 def check_output(text, level, facts):
-    """Returns (ok, reason)."""
     if not text or len(text.split()) < 5:
         return False, "empty"
     for pat in BANNED:
@@ -120,14 +84,11 @@ def trim_words(text, max_words=110):
     return (cut[:end + 1] if end > 0 else cut + "...").strip()
 
 
-# ----------------------------------------------------------------------------- backends
-
-
 class TemplateBackend:
     name = "template"
 
     def chat(self, messages, max_new_tokens=200):
-        return None  # signals "use the deterministic template"
+        return None
 
 
 class LlamaCppBackend:
@@ -150,7 +111,7 @@ class TransformersBackend:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
         try:
-            import torch_npu  # noqa: F401  (Ascend NPU plugin, present on Atlas images)
+            import torch_npu  # noqa: F401
             device = "npu:0"
         except ImportError:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -174,12 +135,10 @@ def load_backend(cfg):
             return LlamaCppBackend(cfg.llm_model, threads=cfg.llm_threads)
         if cfg.llm_backend == "transformers":
             return TransformersBackend(cfg.llm_hf_model)
-    except Exception as e:  # missing package / model file -> keep the device working
+    except Exception as e:
         print(f"[llm] could not load '{cfg.llm_backend}' backend ({e}); using template")
     return TemplateBackend()
 
-
-# ----------------------------------------------------------------------------- templates
 
 TIPS = {
     "HARD_STOOL": "Drink water regularly through the day and add fibre such as oats, fruit and vegetables.",
@@ -204,7 +163,7 @@ def template_report(session, triage_result):
     if not parts:
         parts.append("Your visit has been recorded.")
     keys = ["GAS" if f["code"].startswith("GAS_") else f["code"] for f in triage_result["flags"]]
-    if session and session.get("has_stool"):   # one-off visit tips, even without a multi-day flag
+    if session and session.get("has_stool"):
         keys += ["HARD_STOOL"] if session["bristol_type"] < 3 else (["LOOSE_STOOL"] if session["bristol_type"] > 5 else [])
     if session and session.get("has_urine") and session["hydration_score"] < 50:
         keys.append("LOW_HYDRATION")
@@ -220,9 +179,6 @@ def template_report(session, triage_result):
     elif level == "watch":
         parts.append("We will keep an eye on this over the next few days.")
     return " ".join(parts)
-
-
-# ----------------------------------------------------------------------------- advisor
 
 
 class GutAdvisor:
@@ -254,7 +210,6 @@ class GutAdvisor:
                 "guard": reason, "level": triage_result["level"]}
 
     def ask(self, question, days, triage_result, last_session=None):
-        """Follow-up question from the app, grounded in the user's own recent records."""
         if EMERGENCY_TERMS.search(question):
             return {"text": EMERGENCY_ANSWER, "disclaimer": DISCLAIMER, "source": "rule", "guard": "emergency"}
         facts = build_facts(last_session, days, triage_result)

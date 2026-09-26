@@ -1,27 +1,10 @@
-# classifiers.py
-"""
-Module 2 - the three image classifiers, now running on-device.
-
-PHIND ran analyze_4class.py / analyze_3class.py / analyze_7class.py as separate
-processes on an EC2 instance, triggered through S3 -> SQS -> Lambda -> SSM, and
-parsed their stdout with regexes. PeekaPoo loads all three models once, in
-process, on the Atlas 200I DK A2 and returns plain dicts - no network hop, no
-stdout parsing, and the raw frame never leaves the device.
-
-Two backends:
-  * "torch" - EfficientNet-B0 state_dict (.pt) produced by training/train_classifier.py
-  * "om"    - Ascend offline model (.om) produced by training/convert_om.sh,
-              executed on the NPU through ais_bench
-"""
-
 import json
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-# Label sets. The order must match training (ImageFolder sorts folder names).
-STATE_CLASSES = ["CLE", "STO", "TPI", "URI"]            # clean / stool / toilet paper / urine
+STATE_CLASSES = ["CLE", "STO", "TPI", "URI"]  # clean / stool / toilet paper / urine
 BRISTOL_CLASSES = ["BS1", "BS2", "BS3", "BS4", "BS5", "BS6", "BS7"]
 CONDITION_CLASSES = ["Constipation", "Normal", "Diarrhea"]
 
@@ -36,7 +19,6 @@ IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 
 def preprocess(frame, size=224):
-    """uint8 HxWx3 RGB -> float32 1x3xSxS, same as PHIND's transforms (Resize, ToTensor, Normalize)."""
     img = Image.fromarray(frame).resize((size, size), Image.BILINEAR)
     x = np.asarray(img, dtype=np.float32) / 255.0
     x = (x - IMAGENET_MEAN) / IMAGENET_STD
@@ -85,8 +67,6 @@ class OMClassifier:
 
 
 class RandomClassifier:
-    """Placeholder used when a model file is missing, so the pipeline still runs end to end."""
-
     def __init__(self, classes, seed=0):
         self.classes = classes
         self.rng = np.random.default_rng(seed)
@@ -115,11 +95,6 @@ def load_classifier(task, backend, model_dir, device_id=0, allow_placeholder=Tru
 
 
 class GutAnalyzer:
-    """
-    The multi-stage cascade from PHIND's Lambda, kept intact:
-        state (CLE/STO/TPI/URI)  --STO-->  Bristol 1-7  +  condition 3-class
-    """
-
     def __init__(self, backend="torch", model_dir="models", device_id=0):
         self.state = load_classifier("state", backend, model_dir, device_id)
         self.bristol = load_classifier("bristol", backend, model_dir, device_id)

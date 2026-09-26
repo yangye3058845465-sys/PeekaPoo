@@ -1,27 +1,3 @@
-# train_classifier.py
-"""
-One training script for all three PeekaPoo image models (replaces PHIND
-Step 65_4class / Step 66_7class / Step 67_3class). Run it locally or inside a
-ModelArts notebook; the output is a state_dict + class list that
-export_onnx.py turns into ONNX and convert_om.sh into an Ascend .om model.
-
-    python training/train_classifier.py --task state     --data-dir DATA/state
-    python training/train_classifier.py --task bristol   --data-dir DATA/bristol
-    python training/train_classifier.py --task condition --data-dir DATA/bristol --from-bristol
-
-Data layout: one sub-folder per class (CLE/STO/TPI/URI, BS1..BS7, or
-Class1/Class2/Class3 = Constipation/Normal/Diarrhea). With --from-bristol the
-condition labels are derived from BS folders (BS1-2 -> Constipation,
-BS3-5 -> Normal, BS6-7 -> Diarrhea), the same banding PHIND used for its bar colours.
-
-Fixes compared with the PHIND scripts:
-  * validation images are no longer augmented (random_split shared the train transform)
-  * the URI-specific augmentation no longer overwrites the transform of the whole dataset
-  * focal loss is computed per sample (PHIND applied it to the batch-mean CE)
-  * class names come from the folder order, so reports can't be mislabelled
-  * we save state_dict + a JSON class list instead of pickling the whole model
-"""
-
 import argparse
 import json
 import os
@@ -49,8 +25,6 @@ CLASSN_TO_CONDITION = {"Class1": "Constipation", "Class2": "Normal", "Class3": "
 
 
 def train_tf(strong=False):
-    # ColorJitter is kept mild on purpose: colour carries meaning here (urine hue,
-    # stool colour) and frames are already colour-corrected on the device.
     j = 0.3 if strong else 0.15
     return transforms.Compose([
         transforms.Resize((224, 224)),
@@ -182,7 +156,6 @@ def main():
     counts = np.bincount([y for _, y in train_s], minlength=len(classes))
     print(f"task={args.task} classes={classes} train={len(train_s)} val={len(val_s)} per-class={counts.tolist()}")
 
-    # PHIND gave URI (4-class) and Class1 (3-class) stronger augmentation; keep that idea per class.
     strong = {"state": ["URI"], "condition": ["Constipation"]}.get(args.task, [])
     train_ds = ImageList(train_s, train_tf(False), train_tf(True), [classes.index(c) for c in strong])
     val_ds = ImageList(val_s, EVAL_TF)
