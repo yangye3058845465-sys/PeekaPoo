@@ -87,7 +87,7 @@ pipeline runs, but the labels are meaningless until you train.
 
 ## Dataset
 
-Our dataset is hosted on Google Drive (not stored in this repository):
+Our dataset is partially hosted on Google Drive:
 https://drive.google.com/file/d/1aVG-MeGbs6UDDamuYg-NkCbmNdBAvjhE/view?usp=sharing
 
 Download it and arrange it as one folder per class (CLE/STO/TPI/URI for `state`, BS1..BS7 for
