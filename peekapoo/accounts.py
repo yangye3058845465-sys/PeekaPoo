@@ -56,3 +56,8 @@ class AccountStore:
     def logout(self, token):
         self.db.execute("DELETE FROM tokens WHERE token_hash=?", (_digest(token),))
         self.db.commit()
+
+    def delete(self, email):
+        self.db.execute("DELETE FROM tokens WHERE email=?", (email,))
+        self.db.execute("DELETE FROM accounts WHERE email=?", (email,))
+        self.db.commit()

@@ -1,3 +1,5 @@
+import { common } from '@kit.AbilityKit';
+import { openUrl, PRIVACY_URL } from '../common/Links';
 import { AppData } from '../common/Models';
 import { Session } from '../common/Session';
 import { C } from '../common/Theme';
@@ -24,9 +26,12 @@ function label() {
 export struct ProfileTab {
   @Prop data: AppData | null = null;
   @Prop view: string = '';
+  @Prop publicDemo: boolean = false;
   onSwitch: (member: string) => void = (member: string) => {
   };
   onLogout: () => void = () => {
+  };
+  onDelete: () => void = () => {
   };
   private privacy: string[] = [
     'Images are analysed on the device and never uploaded',
@@ -85,7 +90,7 @@ export struct ProfileTab {
             Text(Session.get('email', ''))
               .fontSize(13)
               .fontColor(C.MUTED)
-            Text(`Device button ${this.me().substring(4)}`)
+            Text(this.publicDemo ? 'Demo account' : `Device button ${this.me().substring(4)}`)
               .fontSize(13)
               .fontColor(C.MUTED)
           }
@@ -95,29 +100,31 @@ export struct ProfileTab {
         .width('100%')
         .margin({ top: 16 })
 
-        Text('Household members').label()
-        Text('Switch to view a family member’s results on this device.')
-          .fontSize(12)
-          .fontColor(C.MUTED)
+        if (!this.publicDemo) {
+          Text('Household members').label()
+          Text('Switch to view a family member’s results on this device.')
+            .fontSize(12)
+            .fontColor(C.MUTED)
+            .width('100%')
+            .margin({ bottom: 8 })
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(this.members(), (m: string) => {
+              Text(this.memberLabel(m))
+                .fontSize(14)
+                .fontWeight(m === this.view ? FontWeight.Bold : FontWeight.Normal)
+                .fontColor(m === this.view ? C.INK : C.TEXT)
+                .padding({ left: 16, right: 16, top: 9, bottom: 9 })
+                .margin({ right: 8, bottom: 8 })
+                .borderRadius(20)
+                .backgroundColor(m === this.view ? C.LIME : C.CARD)
+                .border({ width: 1, color: m === this.view ? C.LIME : C.LINE })
+                .onClick(() => {
+                  this.onSwitch(m);
+                })
+            }, (m: string) => m)
+          }
           .width('100%')
-          .margin({ bottom: 8 })
-        Flex({ wrap: FlexWrap.Wrap }) {
-          ForEach(this.members(), (m: string) => {
-            Text(this.memberLabel(m))
-              .fontSize(14)
-              .fontWeight(m === this.view ? FontWeight.Bold : FontWeight.Normal)
-              .fontColor(m === this.view ? C.INK : C.TEXT)
-              .padding({ left: 16, right: 16, top: 9, bottom: 9 })
-              .margin({ right: 8, bottom: 8 })
-              .borderRadius(20)
-              .backgroundColor(m === this.view ? C.LIME : C.CARD)
-              .border({ width: 1, color: m === this.view ? C.LIME : C.LINE })
-              .onClick(() => {
-                this.onSwitch(m);
-              })
-          }, (m: string) => m)
         }
-        .width('100%')
 
         Text('My PeekaPoo device').label()
         Column() {
@@ -150,6 +157,14 @@ export struct ProfileTab {
               .fontColor(C.TEXT)
               .width('100%')
           }, (p: string) => p)
+          Text('Read the Privacy Policy →')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(C.LIME)
+            .width('100%')
+            .onClick(() => {
+              openUrl(getContext(this) as common.UIAbilityContext, PRIVACY_URL);
+            })
         }
         .card()
 
@@ -170,6 +185,15 @@ export struct ProfileTab {
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
             this.onLogout();
+          })
+
+        Text('Delete my account')
+          .fontSize(13)
+          .fontColor(C.MUTED)
+          .decoration({ type: TextDecorationType.Underline, color: C.MUTED })
+          .margin({ top: 16 })
+          .onClick(() => {
+            this.onDelete();
           })
 
         Text('PeekaPoo · Team InsideOut · USM')

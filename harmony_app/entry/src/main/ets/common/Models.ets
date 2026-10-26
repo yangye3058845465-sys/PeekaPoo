@@ -111,3 +111,7 @@ export class ChatMsg {
     this.note = note;
   }
 }
+
+export interface ServerConfig {
+  public_demo: boolean;
+}

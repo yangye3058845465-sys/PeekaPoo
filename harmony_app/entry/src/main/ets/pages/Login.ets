@@ -1,5 +1,7 @@
 import { router } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { Api } from '../common/Api';
+import { openUrl, PRIVACY_URL } from '../common/Links';
 import { Session } from '../common/Session';
 import { C } from '../common/Theme';
 
@@ -171,7 +173,14 @@ struct Login {
           .fontSize(11)
           .fontColor(C.MUTED)
           .textAlign(TextAlign.Center)
-          .margin({ top: 12, bottom: 24 })
+          .margin({ top: 12 })
+        Text('Privacy Policy')
+          .fontSize(12)
+          .fontColor(C.LIME)
+          .margin({ bottom: 24 })
+          .onClick(() => {
+            openUrl(getContext(this) as common.UIAbilityContext, PRIVACY_URL);
+          })
       }
       .padding({ left: 24, right: 24 })
     }

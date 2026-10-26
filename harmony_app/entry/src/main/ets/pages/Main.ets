@@ -1,6 +1,6 @@
 import { router } from '@kit.ArkUI';
 import { Api, AuthError } from '../common/Api';
-import { AppData } from '../common/Models';
+import { AppData, ServerConfig } from '../common/Models';
 import { Session } from '../common/Session';
 import { C } from '../common/Theme';
 import { HomeTab } from '../components/HomeTab';
@@ -16,9 +16,13 @@ struct Main {
   @State refreshing: boolean = false;
   @State error: string = '';
   @State view: string = Session.get('view', Session.get('member', 'user1'));
+  @State publicDemo: boolean = false;
   private tabs: TabsController = new TabsController();
 
   aboutToAppear(): void {
+    Api.config().then((c: ServerConfig) => {
+      this.publicDemo = c.public_demo;
+    });
     this.load();
   }
 
@@ -74,6 +78,35 @@ struct Main {
       // offline: still log out locally
     }
     this.toLogin();
+  }
+
+  confirmDelete(): void {
+    this.getUIContext().showAlertDialog({
+      title: 'Delete your account?',
+      message: 'This permanently deletes your account and all your PeekaPoo results. This cannot be undone.',
+      autoCancel: true,
+      primaryButton: {
+        value: 'Cancel',
+        action: () => {
+        }
+      },
+      secondaryButton: {
+        value: 'Delete',
+        fontColor: C.RED,
+        action: () => {
+          this.deleteAccount();
+        }
+      }
+    });
+  }
+
+  async deleteAccount(): Promise<void> {
+    try {
+      await Api.deleteAccount();
+      this.toLogin();
+    } catch (e) {
+      this.getUIContext().getPromptAction().showToast({ message: (e as Error).message });
+    }
   }
 
   @Builder
@@ -137,11 +170,15 @@ struct Main {
         ProfileTab({
           data: this.data,
           view: this.view,
+          publicDemo: this.publicDemo,
           onSwitch: (m: string): void => {
             this.switchMember(m);
           },
           onLogout: (): void => {
             this.logout();
+          },
+          onDelete: (): void => {
+            this.confirmDelete();
           }
         })
       }

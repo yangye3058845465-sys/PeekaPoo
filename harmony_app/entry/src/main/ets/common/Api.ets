@@ -1,6 +1,6 @@
 import { http } from '@kit.NetworkKit';
 import { Session } from './Session';
-import { Account, AppData, AskReply, ErrorReply } from './Models';
+import { Account, AppData, AskReply, ErrorReply, ServerConfig } from './Models';
 
 interface LoginBody {
   email: string;
@@ -82,6 +82,20 @@ export class Api {
 
   static async logout(): Promise<void> {
     await call('/api/logout', http.RequestMethod.POST, null);
+  }
+
+  static async deleteAccount(): Promise<void> {
+    await call('/api/delete_account', http.RequestMethod.POST, null);
+  }
+
+  // public demo hubs give every sign-up its own data, so there is no device button to pick
+  static async config(): Promise<ServerConfig> {
+    try {
+      return JSON.parse(await call('/api/config', http.RequestMethod.GET, null)) as ServerConfig;
+    } catch (e) {
+      const fallback: ServerConfig = { public_demo: false };
+      return fallback;
+    }
   }
 
   static async app(member: string): Promise<AppData> {

@@ -133,6 +133,18 @@ def logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/delete_account", methods=["POST"])
+def delete_account():
+    acc = current_account()
+    if not acc:
+        abort(401)
+    accounts.delete(acc["email"])
+    if CONFIG.public_demo:
+        # demo members belong to one account; at home a device button is shared by the household
+        store.delete_user(acc["member"])
+    return jsonify({"ok": True})
+
+
 @app.route("/")
 def index():
     if CONFIG.public_demo:

@@ -1,5 +1,8 @@
 import { router } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { Api } from '../common/Api';
+import { openUrl, PRIVACY_URL } from '../common/Links';
+import { ServerConfig } from '../common/Models';
 import { Session } from '../common/Session';
 import { C } from '../common/Theme';
 
@@ -35,7 +38,14 @@ struct Register {
   @State agree: boolean = false;
   @State busy: boolean = false;
   @State error: string = '';
+  @State publicDemo: boolean = false;
   private slots: number[] = [1, 2, 3, 4];
+
+  aboutToAppear(): void {
+    Api.config().then((c: ServerConfig) => {
+      this.publicDemo = c.public_demo;
+    });
+  }
 
   validate(): string {
     if (this.name.trim().length === 0) {
@@ -50,7 +60,7 @@ struct Register {
     if (this.password !== this.confirm) {
       return "Passwords don't match";
     }
-    if (this.slot === 0) {
+    if (this.slot === 0 && !this.publicDemo) {
       return 'Please choose your button on the device';
     }
     if (!this.agree) {
@@ -66,7 +76,7 @@ struct Register {
     }
     this.busy = true;
     try {
-      const acc = await Api.register(this.name.trim(), this.email.trim(), this.password, `user${this.slot}`);
+      const acc = await Api.register(this.name.trim(), this.email.trim(), this.password, this.slot > 0 ? `user${this.slot}` : '');
       Session.saveAccount(acc);
       router.clear();
       router.replaceUrl({ url: 'pages/Main' });
@@ -138,29 +148,31 @@ struct Register {
               this.confirm = v;
             })
 
-          Text('Your button on the PeekaPoo device').fieldLabel()
-          Text('Press this button before each visit so results go to your account.')
-            .fontSize(12)
-            .fontColor(C.MUTED)
+          if (!this.publicDemo) {
+            Text('Your button on the PeekaPoo device').fieldLabel()
+            Text('Press this button before each visit so results go to your account.')
+              .fontSize(12)
+              .fontColor(C.MUTED)
+              .width('100%')
+            Row({ space: 10 }) {
+              ForEach(this.slots, (s: number) => {
+                Text(`${s}`)
+                  .fontSize(18)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(this.slot === s ? C.INK : C.TEXT)
+                  .textAlign(TextAlign.Center)
+                  .layoutWeight(1)
+                  .height(52)
+                  .borderRadius(16)
+                  .backgroundColor(this.slot === s ? C.LIME : C.CARD)
+                  .border({ width: 1, color: this.slot === s ? C.LIME : C.LINE })
+                  .onClick(() => {
+                    this.slot = s;
+                  })
+              }, (s: number) => `${s}`)
+            }
             .width('100%')
-          Row({ space: 10 }) {
-            ForEach(this.slots, (s: number) => {
-              Text(`${s}`)
-                .fontSize(18)
-                .fontWeight(FontWeight.Bold)
-                .fontColor(this.slot === s ? C.INK : C.TEXT)
-                .textAlign(TextAlign.Center)
-                .layoutWeight(1)
-                .height(52)
-                .borderRadius(16)
-                .backgroundColor(this.slot === s ? C.LIME : C.CARD)
-                .border({ width: 1, color: this.slot === s ? C.LIME : C.LINE })
-                .onClick(() => {
-                  this.slot = s;
-                })
-            }, (s: number) => `${s}`)
           }
-          .width('100%')
 
           Row({ space: 10 }) {
             Checkbox()
@@ -170,10 +182,20 @@ struct Register {
               .onChange((v: boolean) => {
                 this.agree = v;
               })
-            Text('I understand PeekaPoo is a wellness screening aid, not a medical diagnosis, and I agree that my scores (never images) are stored for my personal baseline.')
-              .fontSize(12)
-              .fontColor(C.MUTED)
-              .layoutWeight(1)
+            Column({ space: 6 }) {
+              Text('I have read the Privacy Policy. I understand PeekaPoo is a wellness screening aid, not a medical diagnosis, and I agree that my scores (never images) are stored for my personal baseline.')
+                .fontSize(12)
+                .fontColor(C.MUTED)
+              Text('Read the Privacy Policy')
+                .fontSize(12)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(C.LIME)
+                .onClick(() => {
+                  openUrl(getContext(this) as common.UIAbilityContext, PRIVACY_URL);
+                })
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
           }
           .width('100%')
           .alignItems(VerticalAlign.Top)

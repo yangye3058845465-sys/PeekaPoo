@@ -355,6 +355,15 @@ function logout(callServer = true) {
   showAuth("login");
 }
 $("#logout").onclick = () => logout(true);
+$("#delete-account").onclick = async () => {
+  if (!confirm("Delete your account? This permanently deletes your account and all your PeekaPoo results.")) return;
+  try {
+    await api("/api/delete_account", { method: "POST" });
+    logout(false);
+  } catch (e) {
+    alert(e.message);
+  }
+};
 
 /* ---------- navigation ---------- */
 function go(tab) {

@@ -229,3 +229,5 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .sheet section p, .sheet section ul { margin: 0; font-size: 14px; }
 .sheet section ul { padding-left: 18px; }
 .sheet .disclaimer { color: #6a6878; }
+.account-links { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 0; }
+.account-links a, .account-links button { color: var(--muted); text-decoration: underline; }

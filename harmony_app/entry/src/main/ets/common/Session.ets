@@ -2,8 +2,8 @@ import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { Account } from './Models';
 
-// Address of the PeekaPoo hub (Flask on the Atlas board, or a PC running dashboard/app.py)
-export const DEFAULT_HUB: string = 'http://192.168.135.74:8000';
+// Address of the PeekaPoo hub: the public demo server, or a local hub (Atlas board / PC running dashboard/app.py)
+export const DEFAULT_HUB: string = 'https://peekapoo.pythonanywhere.com';
 
 const KEYS: string[] = ['token', 'name', 'email', 'member', 'view'];
 

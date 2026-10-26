@@ -36,6 +36,10 @@ class SessionStore:
     def users(self):
         return [r[0] for r in self.db.execute("SELECT DISTINCT user FROM sessions ORDER BY user")]
 
+    def delete_user(self, user):
+        self.db.execute("DELETE FROM sessions WHERE user=?", (user,))
+        self.db.commit()
+
     def unsynced(self, limit=50):
         rows = self.db.execute("SELECT id, record FROM sessions WHERE synced=0 ORDER BY id LIMIT ?", (limit,))
         return [(i, json.loads(r)) for i, r in rows.fetchall()]
