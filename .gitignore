@@ -9,3 +9,4 @@ models/
 data/
 *.db
 .env
+deploy/*.zip

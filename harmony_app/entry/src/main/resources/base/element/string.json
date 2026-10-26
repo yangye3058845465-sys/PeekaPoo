@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "PeekaPoo gut health advisor" },
+    { "name": "EntryAbility_desc", "value": "AI-powered, non-contact gut health advisor" },
+    { "name": "EntryAbility_label", "value": "PeekaPoo" }
+  ]
+}

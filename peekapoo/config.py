@@ -48,6 +48,8 @@ class Config:
 
     db_path: str = str(ROOT / "data" / "peekapoo.db")
     default_user: str = "user1"
+    # public demo server: every sign-up gets its own synthetic history and can only see itself
+    public_demo: bool = False
     iotda_host: str = ""  # xxxx.st1.iotda-device.ap-southeast-1.myhuaweicloud.com
     iotda_port: int = 8883
     iotda_device_id: str = ""

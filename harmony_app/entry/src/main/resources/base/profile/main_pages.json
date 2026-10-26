@@ -1,0 +1,8 @@
+{
+  "src": [
+    "pages/Login",
+    "pages/Register",
+    "pages/Main",
+    "pages/Chat"
+  ]
+}

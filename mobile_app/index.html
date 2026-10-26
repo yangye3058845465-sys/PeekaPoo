@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120d2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PeekaPoo">
+<title>PeekaPoo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="device">
+  <div class="app" id="app">
+
+    <!-- HOME -->
+    <section class="screen is-active" id="screen-home" data-tab="home">
+      <header class="top">
+        <div>
+          <p class="muted" id="greeting">Hello</p>
+          <p class="name" id="name">-</p>
+        </div>
+        <button class="avatar" id="avatar-btn" aria-label="Profile">-</button>
+      </header>
+
+      <div class="score-row">
+        <article class="score score--dig">
+          <div class="ring" id="ring-dig"></div>
+          <h3>Digestive Score</h3>
+          <p class="score__sub" id="dig-sub">No stool visit yet</p>
+        </article>
+        <article class="score score--hyd">
+          <div class="ring" id="ring-hyd"></div>
+          <h3>Hydration Score</h3>
+          <p class="score__sub" id="hyd-sub">No urine visit yet</p>
+        </article>
+      </div>
+
+      <article class="card">
+        <p class="eyebrow eyebrow--lime">Today's insight</p>
+        <p class="lead" id="insight">Your first toilet visit will appear here.</p>
+      </article>
+
+      <article class="card card--alert" id="alert-card" hidden>
+        <p class="eyebrow eyebrow--red" id="alert-title">Unusual pattern detected</p>
+        <ul class="flag-list" id="alert-flags"></ul>
+        <button class="link" data-goto="alerts">See details →</button>
+      </article>
+
+      <article class="card">
+        <div class="card__head">
+          <p class="eyebrow">Last 7 days</p>
+          <div class="legend"><span class="dot dot--dig"></span>Digestive <span class="dot dot--hyd"></span>Hydration</div>
+        </div>
+        <div class="spark" id="spark"></div>
+      </article>
+
+      <button class="ask-cta" id="open-chat">
+        <span class="bot" aria-hidden="true"></span>
+        <span>
+          <strong>Ask PeekaPoo</strong>
+          <small>Questions about your scores, trends or alerts</small>
+        </span>
+        <span class="ask-cta__arrow">→</span>
+      </button>
+
+      <p class="foot muted" id="last-visit"></p>
+    </section>
+
+    <!-- DATA -->
+    <section class="screen" id="screen-data" data-tab="data">
+      <h1 class="title">Your Gut Health Index</h1>
+      <p class="muted" id="data-sub">-</p>
+
+      <p class="label">Explore by Bristol type</p>
+      <div class="bars bars--bristol" id="bristol-bars"></div>
+      <div class="note" id="bristol-note">-</div>
+
+      <div class="chips" id="chips">
+        <button class="chip is-on" data-view="consistency">Consistency</button>
+        <button class="chip" data-view="scores">Daily scores</button>
+        <button class="chip" data-view="visits">Visits</button>
+      </div>
+      <div id="chip-view"></div>
+
+      <p class="label">Bristol Stool Scale <span class="muted">· tap to learn</span></p>
+      <div class="bss-grid" id="bss-grid"></div>
+
+      <h2 class="title title--sm">Urine &amp; Gas Signals</h2>
+      <p class="muted">Same personal-history basis as your stool data above</p>
+
+      <p class="label">Urine colour, this month</p>
+      <div id="urine-bars"></div>
+      <div class="note" id="urine-note">-</div>
+
+      <p class="label">Ammonia (NH₃), past 7 days</p>
+      <div class="bars bars--week" id="nh3-bars"></div>
+      <div class="note" id="nh3-note">-</div>
+
+      <p class="label">VOC signal, past 7 days</p>
+      <div class="bars bars--week" id="voc-bars"></div>
+      <div class="note" id="voc-note">Tracks alongside ammonia: both channels read from the same 8-channel gas array.</div>
+    </section>
+
+    <!-- ALERTS -->
+    <section class="screen" id="screen-alerts" data-tab="alerts">
+      <h1 class="title">Alerts</h1>
+      <p class="muted">Compared with your own baseline, not other people's</p>
+
+      <article class="status" id="status">
+        <span class="status__badge" id="status-badge">-</span>
+        <p class="status__text" id="status-text">-</p>
+      </article>
+
+      <div id="flag-cards"></div>
+
+      <article class="card">
+        <p class="eyebrow">How alerts work</p>
+        <ol class="how">
+          <li><b>Personal baseline.</b> Gas readings are compared with your own last 14 days, so your normal is the reference.</li>
+          <li><b>Persistence rule.</b> A single odd day never alerts. A signal must stay unusual for 3 days in a row.</li>
+          <li><b>Fixed rules decide the level.</b> Normal / Watch / Consult comes from deterministic rules, and the AI only explains it.</li>
+        </ol>
+      </article>
+
+      <p class="label">Recent visits</p>
+      <ul class="timeline" id="timeline"></ul>
+    </section>
+
+    <!-- PROFILE -->
+    <section class="screen" id="screen-profile" data-tab="profile">
+      <div class="profile-head">
+        <div class="avatar avatar--lg" id="avatar-lg">-</div>
+        <div>
+          <p class="profile-name" id="profile-name">-</p>
+          <p class="muted" id="profile-email">-</p>
+          <p class="muted" id="profile-id">-</p>
+        </div>
+      </div>
+
+      <div id="household">
+        <p class="label">Household members</p>
+        <p class="muted small">Switch to view a family member's results on this device.</p>
+        <div class="members" id="members"></div>
+      </div>
+
+      <p class="label">My PeekaPoo device</p>
+      <article class="card device-card">
+        <div class="device-row"><span>Edge AI</span><b>Atlas 200I DK A2</b></div>
+        <div class="device-row"><span>Sensor controller</span><b>Hi3861 · OpenHarmony</b></div>
+        <div class="device-row"><span>Vision models</span><b id="sys-vision">-</b></div>
+        <div class="device-row"><span>AI advisor</span><b id="sys-llm">-</b></div>
+        <div class="device-row"><span>Huawei Cloud sync</span><b id="sys-cloud">-</b></div>
+        <div class="device-row"><span>Data source</span><b id="sys-data">-</b></div>
+      </article>
+
+      <p class="label">Privacy</p>
+      <article class="card privacy">
+        <p>✓ Images are analysed on the device and never uploaded</p>
+        <p>✓ Only scores and trends sync to the cloud</p>
+        <p>✓ Each member has their own baseline</p>
+      </article>
+
+      <p class="disclaimer" id="disclaimer"></p>
+      <button class="btn btn--ghost" id="logout">Log out</button>
+      <p class="foot muted">PeekaPoo · Team InsideOut · USM</p>
+    </section>
+
+    <!-- AUTH (log in / sign up) -->
+    <section class="auth" id="auth" hidden>
+      <div class="auth__brand" id="auth-brand">
+        <img src="icons/icon-192.png" alt="" width="84" height="84">
+        <h1>PeekaPoo</h1>
+        <p class="muted">Know your gut. Own your health.</p>
+      </div>
+
+      <form class="auth__form" id="login-form" novalidate>
+        <h2>Welcome back</h2>
+        <p class="muted">Log in to see your gut health index</p>
+        <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Your password"></label>
+        <p class="auth__error" hidden></p>
+        <button class="btn">Log in</button>
+        <p class="auth__switch">Don't have an account? <button type="button" data-auth="register">Sign up</button></p>
+      </form>
+
+      <form class="auth__form" id="register-form" novalidate hidden>
+        <div class="auth__head">
+          <button type="button" class="back" data-auth="login" aria-label="Back">←</button>
+          <h2>Create account</h2>
+        </div>
+        <p class="muted">Set up PeekaPoo for yourself. Each family member gets their own account and personal baseline.</p>
+        <label>Name<input name="name" autocomplete="name" placeholder="What should we call you?"></label>
+        <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+        <label>Password<input name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters"></label>
+        <label>Confirm password<input name="confirm" type="password" autocomplete="new-password" placeholder="Type it again"></label>
+        <fieldset class="slots">
+          <legend>Your button on the PeekaPoo device</legend>
+          <p class="muted small">Press this button before each visit so results go to your account.</p>
+          <div class="slots__row">
+            <label><input type="radio" name="slot" value="1"><span>1</span></label>
+            <label><input type="radio" name="slot" value="2"><span>2</span></label>
+            <label><input type="radio" name="slot" value="3"><span>3</span></label>
+            <label><input type="radio" name="slot" value="4"><span>4</span></label>
+          </div>
+        </fieldset>
+        <label class="consent"><input type="checkbox" name="agree">
+          <span>I understand PeekaPoo is a wellness screening aid, not a medical diagnosis, and I agree that my scores (never images) are stored for my personal baseline.</span></label>
+        <p class="auth__error" hidden></p>
+        <button class="btn">Sign up</button>
+        <p class="auth__switch">Already have an account? <button type="button" data-auth="login">Log in</button></p>
+      </form>
+
+      <div class="auth__hub">
+        <div class="auth__hub-row"><span>Hub: <b id="hub-label">-</b></span><button type="button" id="hub-change">Change</button></div>
+        <input id="hub-input" type="url" placeholder="http://192.168.x.x:8000" hidden>
+      </div>
+      <p class="auth__note">PeekaPoo is a wellness screening aid, not a medical diagnosis.</p>
+    </section>
+
+    <!-- CHAT (overlay) -->
+    <section class="chat" id="chat" hidden>
+      <header class="chat__top">
+        <button class="back" id="close-chat" aria-label="Back">←</button>
+        <div>
+          <h2>PeekaPoo Assistant</h2>
+          <p class="muted">Ask anything about your gut health</p>
+        </div>
+      </header>
+      <div class="chat__log" id="chat-log"></div>
+      <div class="suggest" id="suggest">
+        <button>Currently is my gut health okay?</button>
+        <button>How's my stool pattern this week?</button>
+        <button>Why is my hydration score low?</button>
+      </div>
+      <form class="chat__bar" id="chat-form">
+        <input id="chat-input" placeholder="Ask PeekaPoo anything..." autocomplete="off">
+        <button class="send" aria-label="Send">↑</button>
+      </form>
+    </section>
+
+    <!-- BRISTOL SHEET -->
+    <div class="sheet" id="sheet" hidden>
+      <div class="sheet__panel" role="dialog" aria-modal="true">
+        <button class="sheet__close" id="sheet-close" aria-label="Close">×</button>
+        <div id="sheet-body"></div>
+      </div>
+    </div>
+
+    <nav class="tabbar">
+      <button class="tab is-on" data-goto="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Home</button>
+      <button class="tab" data-goto="data"><svg viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20v-4"/></svg>Data</button>
+      <button class="tab" data-goto="alerts"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>Alerts<i class="tab__dot" id="tab-dot" hidden></i></button>
+      <button class="tab" data-goto="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg>Profile</button>
+    </nav>
+  </div>
+</div>
+<script src="bristol.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

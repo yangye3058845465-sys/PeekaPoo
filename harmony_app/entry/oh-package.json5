@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "PeekaPoo app entry module",
+  "main": "",
+  "author": "Team InsideOut",
+  "license": "",
+  "dependencies": {}
+}
