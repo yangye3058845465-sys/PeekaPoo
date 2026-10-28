@@ -8,6 +8,17 @@ from .urine import hydration_score
 
 SCENARIOS = ("healthy", "constipation_gas")
 
+STOOL_COLOURS = ("Brown", "Light brown", "Dark brown", "Green-ish")
+STOOL_QUANTITIES = ("Small", "Medium", "Large")
+
+
+def fake_stool_look(rng, bs_type):
+    """Colour and amount for a synthetic visit (the vision models do not estimate these yet)."""
+    if bs_type <= 2:
+        return rng.choice(["Dark brown", "Dark brown", "Brown"]), rng.choice(["Small", "Small", "Medium"])
+    colour = rng.choices(STOOL_COLOURS, weights=(70, 15, 10, 5))[0]
+    return colour, rng.choices(STOOL_QUANTITIES, weights=(20, 60, 20))[0]
+
 
 def peaked(n, idx, sharp=0.7):
     p = [(1 - sharp) / (n - 1)] * n
@@ -31,6 +42,7 @@ def fake_session(user, ts, bs_type, urine_lvl, gas_scale, rng=random):
                          for i, ch in enumerate(CONFIG.gas_channels)},
     }
     rec["digestive_score"] = digestive_score(rec["bristol_probs"])
+    rec["stool_colour"], rec["stool_quantity"] = fake_stool_look(rng, bs_type)
     return rec
 
 

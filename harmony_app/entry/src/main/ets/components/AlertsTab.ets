@@ -146,7 +146,7 @@ export struct AlertsTab {
             .border({ width: { bottom: 1 }, color: C.LINE })
           }, (v: Visit) => `${v.start_ts}`)
         }
-        .margin({ bottom: 24 })
+        .margin({ bottom: 96 })
       }
       .padding({ left: 18, right: 18, top: 12 })
     }

@@ -136,64 +136,87 @@ struct Main {
   }
 
   build() {
-    Tabs({ barPosition: BarPosition.End, controller: this.tabs }) {
-      TabContent() {
-        HomeTab({
-          data: this.data,
-          name: this.displayName(),
-          error: this.error,
-          refreshing: $refreshing,
-          onReload: (): void => {
-            this.load();
-          },
-          onGoto: (i: number): void => {
-            this.goto(i);
-          },
-          onChat: (): void => {
-            router.pushUrl({ url: 'pages/Chat' });
-          }
-        })
-      }
-      .tabBar(this.tabItem(0, 'Home', $r('app.media.tab_home_on'), $r('app.media.tab_home'), false))
+    Stack({ alignContent: Alignment.BottomStart }) {
+      Tabs({ barPosition: BarPosition.End, controller: this.tabs }) {
+        TabContent() {
+          HomeTab({
+            data: this.data,
+            name: this.displayName(),
+            error: this.error,
+            refreshing: $refreshing,
+            onReload: (): void => {
+              this.load();
+            },
+            onGoto: (i: number): void => {
+              this.goto(i);
+            }
+          })
+        }
+        .tabBar(this.tabItem(0, 'Home', $r('app.media.tab_home_on'), $r('app.media.tab_home'), false))
 
-      TabContent() {
-        DataTab({ data: this.data })
-      }
-      .tabBar(this.tabItem(1, 'Data', $r('app.media.tab_data_on'), $r('app.media.tab_data'), false))
+        TabContent() {
+          DataTab({ data: this.data })
+        }
+        .tabBar(this.tabItem(1, 'Data', $r('app.media.tab_data_on'), $r('app.media.tab_data'), false))
 
-      TabContent() {
-        AlertsTab({ data: this.data })
-      }
-      .tabBar(this.tabItem(2, 'Alerts', $r('app.media.tab_alerts_on'), $r('app.media.tab_alerts'), this.hasAlert()))
+        TabContent() {
+          AlertsTab({ data: this.data })
+        }
+        .tabBar(this.tabItem(2, 'Alerts', $r('app.media.tab_alerts_on'), $r('app.media.tab_alerts'), this.hasAlert()))
 
-      TabContent() {
-        ProfileTab({
-          data: this.data,
-          view: this.view,
-          publicDemo: this.publicDemo,
-          onSwitch: (m: string): void => {
-            this.switchMember(m);
-          },
-          onLogout: (): void => {
-            this.logout();
-          },
-          onDelete: (): void => {
-            this.confirmDelete();
-          }
-        })
+        TabContent() {
+          ProfileTab({
+            data: this.data,
+            view: this.view,
+            publicDemo: this.publicDemo,
+            onSwitch: (m: string): void => {
+              this.switchMember(m);
+            },
+            onLogout: (): void => {
+              this.logout();
+            },
+            onDelete: (): void => {
+              this.confirmDelete();
+            }
+          })
+        }
+        .tabBar(this.tabItem(3, 'Profile', $r('app.media.tab_profile_on'), $r('app.media.tab_profile'), false))
       }
-      .tabBar(this.tabItem(3, 'Profile', $r('app.media.tab_profile_on'), $r('app.media.tab_profile'), false))
+      .width('100%')
+      .height('100%')
+      .backgroundColor(C.BG)
+      .barHeight(68)
+      .barBackgroundColor(C.BG2)
+      .scrollable(false)
+      .animationDuration(0)
+      .divider({ strokeWidth: 1, color: C.LINE })
+      .onChange((i: number) => {
+        this.current = i;
+      })
+
+      // floating chat button: always reachable above the tab bar
+      Row({ space: 8 }) {
+        Image($r('app.media.bot'))
+          .width(40)
+          .height(40)
+          .padding(6)
+          .borderRadius(20)
+          .backgroundColor(C.MINT)
+        Text('Ask')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(C.INK)
+      }
+      .padding({ left: 6, right: 16, top: 6, bottom: 6 })
+      .borderRadius(28)
+      .backgroundColor(C.LIME)
+      .shadow({ radius: 24, color: '#73000000', offsetY: 8 })
+      .margin({ left: 16, bottom: 68 + 14 })
+      .onClick(() => {
+        router.pushUrl({ url: 'pages/Chat' });
+      })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(C.BG)
-    .barHeight(68)
-    .barBackgroundColor(C.BG2)
-    .scrollable(false)
-    .animationDuration(0)
-    .divider({ strokeWidth: 1, color: C.LINE })
-    .onChange((i: number) => {
-      this.current = i;
-    })
   }
 }

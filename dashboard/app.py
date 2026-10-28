@@ -9,7 +9,7 @@ from flask import Flask, abort, jsonify, redirect, render_template, request, sen
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from peekapoo.accounts import AccountStore  # noqa: E402
 from peekapoo.config import CONFIG  # noqa: E402
-from peekapoo.demo import SCENARIOS, seed_history  # noqa: E402
+from peekapoo.demo import SCENARIOS, fake_stool_look, seed_history  # noqa: E402
 from peekapoo.gas_baseline import GasBaseline  # noqa: E402
 from peekapoo.llm_advisor import DISCLAIMER, GutAdvisor, template_report  # noqa: E402
 from peekapoo.scoring import daily_summary, digestive_score, triage  # noqa: E402
@@ -176,6 +176,16 @@ def summary():
 
 
 URINE_GROUPS = (("Pale yellow", (1, 2, 3)), ("Light amber", (4, 5)), ("Dark amber", (6, 7, 8)))
+CONSISTENCY = {1: "Hard lumps", 2: "Lumpy, hard", 3: "Firm", 4: "Smooth & soft", 5: "Soft blobs", 6: "Mushy", 7: "Liquid"}
+
+
+def stool_look(s):
+    colour, quantity = s.get("stool_colour"), s.get("stool_quantity")
+    if s.get("synthetic") and not colour:
+        # demo records written before colour/amount existed: derive them stably from the visit time
+        colour, quantity = fake_stool_look(random.Random(int(s["start_ts"])), s["bristol_type"])
+    return {"ts": s["start_ts"], "bristol_type": s["bristol_type"],
+            "consistency": CONSISTENCY[s["bristol_type"]], "colour": colour, "quantity": quantity}
 
 
 def _share(counts, total):
@@ -220,6 +230,7 @@ def app_data():
                                      "bristol_type": last_stool["bristol_type"],
                                      "condition": last_stool["condition"]},
         "hydration": last_urine and {"score": last_urine["hydration_score"], "level": last_urine["urine_level"]},
+        "stool": last_stool and stool_look(last_stool),
         "insight": insight,
         "disclaimer": DISCLAIMER,
         "triage": tri,

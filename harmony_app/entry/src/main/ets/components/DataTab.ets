@@ -151,16 +151,20 @@ export struct DataTab {
     return this.data !== null && z !== null && z > this.data.z_threshold;
   }
 
+  // gas readings sit in a narrow band, so scale over the week's own range instead of from zero
   gasRatio(g: GasDay, nh3: boolean): number {
     let max = 1;
+    let min = Number.MAX_VALUE;
     for (const d of this.gas()) {
       const v = this.gasValue(d, nh3);
       if (v !== null) {
         max = Math.max(max, v);
+        min = Math.min(min, v);
       }
     }
+    const lo = min === Number.MAX_VALUE ? 0 : min * 0.7;
     const v = this.gasValue(g, nh3);
-    return v === null ? 0.03 : 0.08 + 0.92 * v / max;
+    return v === null ? 0.03 : 0.14 + 0.86 * (v - lo) / Math.max(1e-6, max - lo);
   }
 
   gasSub(g: GasDay, nh3: boolean): string {
@@ -454,7 +458,7 @@ export struct DataTab {
         Text('VOC signal, past 7 days').label()
         this.gasChart(false)
         Text('Tracks alongside ammonia: both channels read from the same 8-channel gas array.').note()
-          .margin({ top: 12, bottom: 28 })
+          .margin({ top: 12, bottom: 96 })
       }
       .padding({ left: 18, right: 18, top: 12 })
     }

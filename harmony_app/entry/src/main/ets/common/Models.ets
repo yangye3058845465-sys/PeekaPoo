@@ -22,6 +22,15 @@ export interface HydrationInfo {
   level: number;
 }
 
+// colour / quantity are null when the hub has not measured them
+export interface StoolInfo {
+  ts: number;
+  bristol_type: number;
+  consistency: string;
+  colour: string | null;
+  quantity: string | null;
+}
+
 export interface TrendDay {
   day: string;
   digestive: number | null;
@@ -67,6 +76,7 @@ export interface AppData {
   last_ts: number | null;
   digestive: DigestiveInfo | null;
   hydration: HydrationInfo | null;
+  stool: StoolInfo | null;
   insight: string | null;
   disclaimer: string;
   triage: Triage;

@@ -199,7 +199,7 @@ export struct ProfileTab {
         Text('PeekaPoo · Team InsideOut · USM')
           .fontSize(12)
           .fontColor(C.MUTED)
-          .margin({ top: 16, bottom: 28 })
+          .margin({ top: 16, bottom: 96 })
       }
       .padding({ left: 18, right: 18, top: 12 })
     }

@@ -49,6 +49,27 @@
         <p class="lead" id="insight">Your first toilet visit will appear here.</p>
       </article>
 
+      <article class="card">
+        <div class="card__head">
+          <p class="eyebrow">Last stool</p>
+          <span class="legend" id="stool-when"></span>
+        </div>
+        <div class="stool-stats">
+          <div class="stool-stat">
+            <span class="stool-stat__icon"><i class="swatch" id="stool-swatch"></i></span>
+            <small>Colour</small><b id="stool-colour">–</b>
+          </div>
+          <div class="stool-stat">
+            <span class="stool-stat__icon" id="stool-type">–</span>
+            <small>Consistency</small><b id="stool-consistency">–</b>
+          </div>
+          <div class="stool-stat">
+            <span class="stool-stat__icon qty" id="stool-qty"><i></i><i></i><i></i></span>
+            <small>Quantity</small><b id="stool-quantity">–</b>
+          </div>
+        </div>
+      </article>
+
       <article class="card card--alert" id="alert-card" hidden>
         <p class="eyebrow eyebrow--red" id="alert-title">Unusual pattern detected</p>
         <ul class="flag-list" id="alert-flags"></ul>
@@ -62,15 +83,6 @@
         </div>
         <div class="spark" id="spark"></div>
       </article>
-
-      <button class="ask-cta" id="open-chat">
-        <span class="bot" aria-hidden="true"></span>
-        <span>
-          <strong>Ask PeekaPoo</strong>
-          <small>Questions about your scores, trends or alerts</small>
-        </span>
-        <span class="ask-cta__arrow">→</span>
-      </button>
 
       <p class="foot muted" id="last-visit"></p>
     </section>
@@ -255,6 +267,8 @@
         <div id="sheet-body"></div>
       </div>
     </div>
+
+    <button class="chat-fab" id="open-chat" aria-label="Ask PeekaPoo"><span class="bot" aria-hidden="true"></span><span>Ask</span></button>
 
     <nav class="tabbar">
       <button class="tab is-on" data-goto="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Home</button>

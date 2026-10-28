@@ -99,6 +99,7 @@ function renderHome(d) {
   $("#hyd-sub").textContent = d.hydration ? hydrationLabel(d.hydration.score) : "No urine visit yet";
 
   $("#insight").textContent = d.insight || "Your first toilet visit will appear here.";
+  renderStool(d.stool);
 
   const flags = d.triage.flags;
   $("#alert-card").hidden = !flags.length;
@@ -112,6 +113,20 @@ function renderHome(d) {
 
   spark($("#spark"), d.trend.slice(-7));
   $("#last-visit").textContent = d.last_ts ? `Last visit ${fmtTime(d.last_ts)} · ${d.visits} visits in 30 days` : "No visits recorded yet";
+}
+
+const STOOL_HEX = { "Brown": "#8a5a3b", "Light brown": "#c08a5c", "Dark brown": "#4f3020", "Green-ish": "#6f7d3c", "Yellow": "#d4b44a", "Black": "#1d1714", "Red-tinged": "#9b3b32" };
+const QTY_LEVEL = { Small: 1, Medium: 2, Large: 3 };
+
+// colour and amount are only filled in when the hub measured them; consistency comes from the Bristol type
+function renderStool(s) {
+  $("#stool-when").textContent = s ? fmtTime(s.ts) : "No stool visit yet";
+  $("#stool-colour").textContent = s?.colour || "Not measured";
+  $("#stool-swatch").style.background = (s && STOOL_HEX[s.colour]) || "";
+  $("#stool-type").textContent = s ? `T${s.bristol_type}` : "–";
+  $("#stool-consistency").textContent = s ? s.consistency : "–";
+  $("#stool-quantity").textContent = s?.quantity || "Not measured";
+  $$("#stool-qty i").forEach((bar, i) => bar.classList.toggle("on", i < (QTY_LEVEL[s?.quantity] || 0)));
 }
 
 function spark(el, days) {
@@ -141,9 +156,9 @@ function renderData(d) {
   const sel = state.bristolSel || top || "All";
   $("#bristol-bars").innerHTML = keys.map(k => {
     const pct = k === "All" ? 100 : share[k];
-    const hgt = k === "All" ? 100 : 8 + 92 * pct / max;
+    const hgt = Math.round(BRISTOL_PLOT * (k === "All" ? 1 : 0.08 + 0.92 * pct / max));
     const cls = ["bar", k === "All" ? "is-all" : "", k === top ? "is-hi" : "", k === sel ? "is-sel" : ""].join(" ");
-    return `<button class="${cls}" data-k="${k}"><i style="height:${hgt}%"></i><b>${k}</b><small>${n ? pct : 0}%</small></button>`;
+    return `<button class="${cls}" data-k="${k}"><i style="height:${hgt}px"></i><b>${k}</b><small>${n ? pct : 0}%</small></button>`;
   }).join("");
   $$("#bristol-bars .bar").forEach(b => b.onclick = () => { state.bristolSel = b.dataset.k; renderData(state.data); });
 
@@ -178,12 +193,17 @@ function renderData(d) {
     : "Within your personal baseline all week.";
 }
 
+// Bar heights in px (a % height would shrink every bar equally to make room for the labels).
+// Gas readings sit in a narrow band, so scale over the week's own range instead of from zero.
+const GAS_PLOT = 84, BRISTOL_PLOT = 104;
+
 function gasBars(el, gas7, ch, thr) {
-  const vals = gas7.map(g => g[ch]);
-  const max = Math.max(1, ...vals.filter(v => v != null));
+  const vals = gas7.map(g => g[ch]).filter(v => v != null);
+  const max = Math.max(1, ...vals), lo = vals.length ? Math.min(...vals) * 0.7 : 0;
   el.innerHTML = gas7.map(g => {
     const v = g[ch], hi = g[`z_${ch}`] != null && g[`z_${ch}`] > thr;
-    return `<div class="bar ${hi ? "is-hi" : ""}"><i style="height:${v == null ? 4 : 10 + 90 * v / max}%"></i>
+    const h = v == null ? 4 : Math.round(12 + (GAS_PLOT - 12) * (v - lo) / Math.max(1e-6, max - lo));
+    return `<div class="bar ${hi ? "is-hi" : ""}"><i style="height:${h}px"></i>
       <b>${weekday(g.day).charAt(0)}</b><small>${v == null ? "–" : Math.round(v)}</small></div>`;
   }).join("");
 }
