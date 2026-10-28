@@ -1,8 +1,14 @@
-import { AppData, GasDay, TrendDay, Visit } from '../common/Models';
-import { C } from '../common/Theme';
-import { fmtTime, shortDay, weekday } from '../common/Format';
+import { AppData, GasDay, LookRow } from '../common/Models';
+import { C, STOOL_HEX } from '../common/Theme';
+import { weekday } from '../common/Format';
 import { BSS, BSS_IMG, BSS_NOTE } from '../common/Bristol';
 import { BarColumn, HBar } from './Widgets';
+
+const LOOK_EMPTY: Record<string, string> = {
+  'colour': "Colour isn't measured for your visits yet.",
+  'consistency': 'No stool visits yet in the last 30 days.',
+  'quantity': "Quantity isn't measured for your visits yet."
+};
 
 @Styles
 function card() {
@@ -39,13 +45,13 @@ function note() {
 export struct DataTab {
   @Prop data: AppData | null = null;
   @State selected: string = '';
-  @State view: string = 'consistency';
+  @State view: string = 'colour';
   @State sheetOpen: boolean = false;
   @State sheetType: number = 1;
   private keys: string[] = ['All', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
   private types: number[] = [1, 2, 3, 4, 5, 6, 7];
-  private views: string[] = ['consistency', 'scores', 'visits'];
-  private viewNames: string[] = ['Consistency', 'Daily scores', 'Visits'];
+  private views: string[] = ['colour', 'consistency', 'quantity'];
+  private viewNames: string[] = ['Colour', 'Consistency', 'Quantity'];
   private urineKeys: string[] = ['Pale yellow', 'Light amber', 'Dark amber'];
   private urineColors: string[] = ['#f4f1c9', C.MINT, C.BLUE];
 
@@ -109,17 +115,16 @@ export struct DataTab {
     return `Type ${t}${mine}: ${BSS[t - 1].short.toLowerCase()}. Logged ${this.share(s)}% of the time this month.`;
   }
 
-  /* ---------- chips ---------- */
-  condShare(k: string): number {
-    return this.data === null ? 0 : (this.data.condition.share[k] ?? 0);
-  }
-
-  days(): TrendDay[] {
-    return this.data === null ? [] : this.data.trend.slice().reverse().slice(0, 7);
-  }
-
-  visits(): Visit[] {
-    return this.data === null ? [] : this.data.recent.slice(0, 6);
+  /* ---------- chips: colour / consistency / quantity ---------- */
+  lookRows(): LookRow[] {
+    if (this.data === null) {
+      return [];
+    }
+    const look = this.data.look;
+    if (this.view === 'colour') {
+      return look.colour.rows;
+    }
+    return this.view === 'quantity' ? look.quantity.rows : look.consistency.rows;
   }
 
   /* ---------- urine & gas ---------- */
@@ -189,11 +194,6 @@ export struct DataTab {
       return 'Within your personal baseline all week.';
     }
     return `Above your personal baseline on ${high.join(', ')}. An alert is raised only after 3 days in a row.`;
-  }
-
-  visitText(v: Visit): string {
-    const mins = Math.round((v.total_time_s ?? 0) / 60);
-    return `${mins} min`;
   }
 
   /* ---------- builders ---------- */
@@ -339,46 +339,17 @@ export struct DataTab {
         .width('100%')
         .margin({ top: 22, bottom: 12 })
 
-        if (this.view === 'consistency') {
-          Column() {
-            HBar({ label: 'Hard (1–2)', pct: this.condShare('Constipation'), barColor: C.BLUE })
-            HBar({ label: 'Typical (3–5)', pct: this.condShare('Normal'), barColor: C.MINT })
-            HBar({ label: 'Loose (6–7)', pct: this.condShare('Diarrhea'), barColor: C.AMBER })
-          }
-        } else if (this.view === 'scores') {
-          Column() {
-            ForEach(this.days(), (t: TrendDay) => {
-              Row() {
-                Text(shortDay(t.day))
-                  .fontSize(14)
-                  .fontColor(C.TEXT)
-                Blank()
-                Text(`Digestive ${t.digestive ?? '–'} · Hydration ${t.hydration ?? '–'}`)
-                  .fontSize(14)
-                  .fontColor(C.MUTED)
-              }
-              .width('100%')
-              .padding({ top: 9, bottom: 9 })
-            }, (t: TrendDay) => t.day)
-          }
-          .card()
+        if (this.lookRows().length === 0) {
+          Text(LOOK_EMPTY[this.view] ?? '')
+            .fontSize(14)
+            .fontColor(C.MUTED)
+            .width('100%')
         } else {
           Column() {
-            ForEach(this.visits(), (v: Visit) => {
-              Row() {
-                Text(fmtTime(v.start_ts))
-                  .fontSize(14)
-                  .fontColor(C.TEXT)
-                Blank()
-                Text(this.visitText(v))
-                  .fontSize(14)
-                  .fontColor(C.MUTED)
-              }
-              .width('100%')
-              .padding({ top: 9, bottom: 9 })
-            }, (v: Visit) => `${v.start_ts}`)
+            ForEach(this.lookRows(), (r: LookRow) => {
+              HBar({ label: r.label, pct: r.pct, barColor: this.view === 'colour' ? (STOOL_HEX[r.label] ?? C.MINT) : C.MINT })
+            }, (r: LookRow) => this.view + r.label + r.pct)
           }
-          .card()
         }
 
         Row() {

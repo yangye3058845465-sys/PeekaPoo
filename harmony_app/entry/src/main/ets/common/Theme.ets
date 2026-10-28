@@ -22,3 +22,14 @@ export function levelColor(level: string): string {
   }
   return level === 'watch' ? C.AMBER : C.GREEN;
 }
+
+// stool colour swatches (Home 'Last stool' card and Data colour chip)
+export const STOOL_HEX: Record<string, string> = {
+  'Brown': '#8a5a3b',
+  'Light brown': '#c08a5c',
+  'Dark brown': '#4f3020',
+  'Green-ish': '#6f7d3c',
+  'Yellow': '#d4b44a',
+  'Black': '#1d1714',
+  'Red-tinged': '#9b3b32'
+};

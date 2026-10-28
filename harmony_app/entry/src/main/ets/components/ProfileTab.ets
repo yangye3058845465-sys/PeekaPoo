@@ -33,6 +33,14 @@ export struct ProfileTab {
   };
   onDelete: () => void = () => {
   };
+  @Prop demoStatus: string = '';
+  onScenario: (scenario: string, name: string) => void = (scenario: string, name: string) => {
+  };
+  private scenarios: string[][] = [
+    ['healthy', 'Healthy week'],
+    ['ammonia_high', 'High ammonia'],
+    ['constipation_gas', 'Constipation']
+  ];
   private privacy: string[] = [
     'Images are analysed on the device and never uploaded',
     'Only scores and trends sync to the cloud',
@@ -148,6 +156,37 @@ export struct ProfileTab {
           }, (r: string[]) => r[0] + r[1])
         }
         .card()
+
+        if (this.publicDemo) {
+          Text('Demo data').label()
+          Text('Replace your sample readings with a scenario to see how PeekaPoo reacts.')
+            .fontSize(12)
+            .fontColor(C.MUTED)
+            .width('100%')
+            .margin({ bottom: 8 })
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(this.scenarios, (s: string[]) => {
+              Text(s[1])
+                .fontSize(14)
+                .fontColor(C.TEXT)
+                .padding({ left: 16, right: 16, top: 9, bottom: 9 })
+                .margin({ right: 8, bottom: 8 })
+                .borderRadius(20)
+                .backgroundColor(C.CARD)
+                .border({ width: 1, color: C.LINE })
+                .onClick(() => {
+                  this.onScenario(s[0], s[1]);
+                })
+            }, (s: string[]) => s[0])
+          }
+          .width('100%')
+          if (this.demoStatus.length > 0) {
+            Text(this.demoStatus)
+              .fontSize(12)
+              .fontColor(C.MUTED)
+              .width('100%')
+          }
+        }
 
         Text('Privacy').label()
         Column({ space: 8 }) {

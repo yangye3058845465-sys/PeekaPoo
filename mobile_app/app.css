@@ -70,9 +70,25 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; margin-top: 14px; }
 .card__head { display: flex; justify-content: space-between; align-items: baseline; }
-.card--alert { background: linear-gradient(180deg, #2a1730, #1d1739); border-color: rgba(255, 107, 107, .35); }
-.flag-list { margin: 4px 0 8px; padding-left: 18px; }
-.flag-list li { margin: 4px 0; }
+/* Home alert module: all clear / watch / consult */
+.alert-mod__head { display: flex; gap: 12px; align-items: center; }
+.alert-mod__icon { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 18px; color: var(--ink); }
+.alert-mod__title { margin: 0; font-weight: 700; font-size: 15px; }
+.alert-mod__sub { margin: 0; font-size: 12px; color: var(--muted); }
+.alert-mod--normal .alert-mod__icon { background: var(--green); }
+.alert-mod--normal .alert-mod__title { color: var(--green); }
+.alert-mod--watch { background: linear-gradient(180deg, #2b2130, #1d1739); border-color: rgba(255, 181, 71, .35); }
+.alert-mod--watch .alert-mod__icon { background: var(--amber); }
+.alert-mod--watch .alert-mod__title { color: var(--amber); }
+.alert-mod--consult { background: linear-gradient(180deg, #2a1730, #1d1739); border-color: rgba(255, 107, 107, .35); }
+.alert-mod--consult .alert-mod__icon { background: var(--red); }
+.alert-mod--consult .alert-mod__title { color: var(--red); }
+.alert-list { list-style: none; margin: 12px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.alert-list:empty { display: none; }
+.alert-item { padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, .04); border-left: 3px solid var(--amber); }
+.alert-item--consult { border-left-color: var(--red); }
+.alert-item b { display: block; font-size: 14px; margin-bottom: 2px; }
+.alert-item span { font-size: 14px; line-height: 1.45; color: #e6e2f7; }
 .link { color: var(--lime); font-weight: 600; font-size: 14px; }
 
 .legend { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; }

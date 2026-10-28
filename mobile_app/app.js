@@ -24,7 +24,7 @@ const DEFAULT_HUB = "http://192.168.135.74:8000";
 const SAME_ORIGIN = location.protocol.startsWith("http");
 const hub = () => store.get("pp_hub", SAME_ORIGIN ? location.origin : DEFAULT_HUB);
 
-let state = { user: null, data: null, bristolSel: null, view: "consistency" };
+let state = { user: null, data: null, bristolSel: null, view: "colour" };
 const account = () => store.get("pp_account", null);
 const displayName = u => (account() && u === account().member ? account().name : `Button ${String(u).replace("user", "")}`);
 
@@ -101,15 +101,7 @@ function renderHome(d) {
   $("#insight").textContent = d.insight || "Your first toilet visit will appear here.";
   renderStool(d.stool);
 
-  const flags = d.triage.flags;
-  $("#alert-card").hidden = !flags.length;
-  $("#tab-dot").hidden = !flags.length;
-  if (flags.length) {
-    $("#alert-title").textContent = d.triage.level === "consult" ? "ALERT! Unusual pattern detected" : "Heads up: something changed";
-    $("#alert-title").className = `eyebrow ${d.triage.level === "consult" ? "eyebrow--red" : ""}`;
-    $("#alert-title").style.color = d.triage.level === "watch" ? "var(--amber)" : "";
-    $("#alert-flags").innerHTML = flags.map(f => `<li>${esc(f.detail.charAt(0).toUpperCase() + f.detail.slice(1))}</li>`).join("");
-  }
+  renderAlertModule(d);
 
   spark($("#spark"), d.trend.slice(-7));
   $("#last-visit").textContent = d.last_ts ? `Last visit ${fmtTime(d.last_ts)} · ${d.visits} visits in 30 days` : "No visits recorded yet";
@@ -127,6 +119,46 @@ function renderStool(s) {
   $("#stool-consistency").textContent = s ? s.consistency : "–";
   $("#stool-quantity").textContent = s?.quantity || "Not measured";
   $$("#stool-qty i").forEach((bar, i) => bar.classList.toggle("on", i < (QTY_LEVEL[s?.quantity] || 0)));
+}
+
+// Home alert module: plain-language version of each triage flag. The level itself comes from the hub's rules.
+const ALERT_TEXT = {
+  GAS_NH3: ["Unusual ammonia level", "Ammonia from your visits has stayed above your personal baseline for {n} days. Drink more water, and consult a doctor if you are feeling uncomfortable."],
+  GAS_H2S: ["Unusual sulphide gas", "Sulphide gas has stayed above your personal baseline for {n} days. Notice whether it follows particular foods, and consult a doctor if you are feeling uncomfortable."],
+  GAS_VOC: ["Unusual VOC signal", "The VOC signal has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable."],
+  GAS_CH4: ["Unusual methane level", "Methane has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable."],
+  GAS_H2: ["Unusual hydrogen level", "Hydrogen has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable."],
+  HARD_STOOL: ["Hard stools", "Your stools have been hard (Bristol 1–2) for {n} days in a row. Drink water through the day and add fibre such as oats, fruit and vegetables."],
+  LOOSE_STOOL: ["Loose stools", "Your stools have been loose (Bristol 6–7) for {n} days in a row. Sip fluids often and choose simple, bland meals."],
+  LOW_HYDRATION: ["Low hydration", "Your urine has been darker than usual for {n} days. Keep a water bottle nearby and drink regularly."],
+  NO_BOWEL_MOVEMENT: ["No bowel movement", "No bowel movement has been recorded for {n} days. Try a regular toilet time after meals and some light walking."],
+};
+
+function alertMessage(f) {
+  const [title, text] = ALERT_TEXT[f.code] || [FLAG_TITLE[f.code] || f.code, f.detail];
+  const n = (f.detail.match(/(\d+)/) || [])[1] || "several";
+  return { title, text: text.replace("{n}", n) };
+}
+
+function renderAlertModule(d) {
+  const flags = d.triage.flags, lvl = d.triage.level;
+  const card = $("#alert-card");
+  card.className = `card alert-mod alert-mod--${lvl}`;
+  $("#tab-dot").hidden = !flags.length;
+  $("#alert-more").hidden = !flags.length;
+  $("#alert-icon").textContent = flags.length ? "!" : "✓";
+  if (!flags.length) {
+    $("#alert-title").textContent = "All clear";
+    $("#alert-sub").textContent = d.visits ? "No unusual patterns in your recent visits." : "We'll let you know here if anything changes.";
+    $("#alert-flags").innerHTML = "";
+    return;
+  }
+  $("#alert-title").textContent = lvl === "consult" ? "ALERT! Unusual pattern detected" : "Heads up: something changed";
+  $("#alert-sub").textContent = lvl === "consult" ? "Compared with your own baseline" : "We'll keep watching over the next few days";
+  $("#alert-flags").innerHTML = flags.map(f => {
+    const m = alertMessage(f);
+    return `<li class="alert-item alert-item--${f.level}"><b>${esc(m.title)}</b><span>${esc(m.text)}</span></li>`;
+  }).join("");
 }
 
 function spark(el, days) {
@@ -208,19 +240,18 @@ function gasBars(el, gas7, ch, thr) {
   }).join("");
 }
 
+const LOOK_EMPTY = {
+  colour: "Colour isn't measured for your visits yet.",
+  consistency: "No stool visits yet in the last 30 days.",
+  quantity: "Quantity isn't measured for your visits yet.",
+};
+
+// Colour / Consistency / Quantity: share of this month's stool visits
 function renderChipView(d) {
   $$("#chips .chip").forEach(c => c.classList.toggle("is-on", c.dataset.view === state.view));
-  const el = $("#chip-view");
-  if (state.view === "consistency") {
-    const s = d.condition.share;
-    el.innerHTML = hbar("Hard (1–2)", s.Constipation, "#6f8fbf") + hbar("Typical (3–5)", s.Normal) + hbar("Loose (6–7)", s.Diarrhea, "#ffb547");
-  } else if (state.view === "scores") {
-    el.innerHTML = `<div class="card" style="margin-top:0">${d.trend.slice().reverse().slice(0, 7).map(t =>
-      `<div class="visit-row"><span>${weekday(t.day)} ${t.day.slice(5)}</span><span>Digestive <b>${t.digestive ?? "–"}</b> · Hydration <b>${t.hydration ?? "–"}</b></span></div>`).join("")}</div>`;
-  } else {
-    el.innerHTML = `<div class="card" style="margin-top:0">${d.recent.slice(0, 6).map(v =>
-      `<div class="visit-row"><span>${fmtTime(v.start_ts)}</span><span>${Math.round((v.total_time_s || 0) / 60)} min</span></div>`).join("") || "<p class='muted'>No visits yet</p>"}</div>`;
-  }
+  const look = d.look[state.view];
+  $("#chip-view").innerHTML = !look.n ? `<p class="muted">${LOOK_EMPTY[state.view]}</p>`
+    : look.rows.map(r => hbar(r.label, r.pct, state.view === "colour" ? STOOL_HEX[r.label] : "")).join("");
 }
 
 /* ---------- alerts ---------- */
@@ -257,6 +288,7 @@ function renderProfile(d) {
   $("#profile-email").textContent = acc.email;
   $("#profile-id").textContent = serverConfig.public_demo ? "Demo account" : `Device button ${String(acc.member).replace("user", "")}`;
   $("#household").hidden = serverConfig.public_demo;
+  $("#demo-box").hidden = !serverConfig.public_demo;
   $("#members").innerHTML = d.users.map(u => `<button class="member ${u === d.user ? "is-on" : ""}" data-u="${esc(u)}">${esc(memberLabel(u))}</button>`).join("");
   $$("#members .member").forEach(b => b.onclick = () => { state.user = b.dataset.u; state.bristolSel = null; resetChat(); load().then(() => go("home")); });
 
@@ -375,6 +407,22 @@ function logout(callServer = true) {
   showAuth("login");
 }
 $("#logout").onclick = () => logout(true);
+
+const SCENARIO_NAMES = { healthy: "Healthy week", ammonia_high: "High ammonia", constipation_gas: "Constipation" };
+$$("#demo-scenarios [data-sc]").forEach(b => b.onclick = async () => {
+  const status = $("#demo-status");
+  status.textContent = "Updating your sample readings…";
+  try {
+    await api("/api/demo_reset", { method: "POST", body: JSON.stringify({ scenario: b.dataset.sc }) });
+    state.bristolSel = null;
+    resetChat();
+    await load();
+    status.textContent = `Now showing: ${SCENARIO_NAMES[b.dataset.sc]}.`;
+    go("home");
+  } catch (e) {
+    status.textContent = e.message;
+  }
+});
 $("#delete-account").onclick = async () => {
   if (!confirm("Delete your account? This permanently deletes your account and all your PeekaPoo results.")) return;
   try {

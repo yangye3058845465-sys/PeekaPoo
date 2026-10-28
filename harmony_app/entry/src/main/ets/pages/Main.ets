@@ -17,6 +17,7 @@ struct Main {
   @State error: string = '';
   @State view: string = Session.get('view', Session.get('member', 'user1'));
   @State publicDemo: boolean = false;
+  @State demoStatus: string = '';
   private tabs: TabsController = new TabsController();
 
   aboutToAppear(): void {
@@ -78,6 +79,18 @@ struct Main {
       // offline: still log out locally
     }
     this.toLogin();
+  }
+
+  async resetDemo(scenario: string, name: string): Promise<void> {
+    this.demoStatus = 'Updating your sample readings…';
+    try {
+      await Api.demoReset(scenario);
+      await this.load();
+      this.demoStatus = `Now showing: ${name}.`;
+      this.goto(0);
+    } catch (e) {
+      this.demoStatus = (e as Error).message;
+    }
   }
 
   confirmDelete(): void {
@@ -177,6 +190,10 @@ struct Main {
             },
             onDelete: (): void => {
               this.confirmDelete();
+            },
+            demoStatus: this.demoStatus,
+            onScenario: (scenario: string, name: string): void => {
+              this.resetDemo(scenario, name);
             }
           })
         }

@@ -80,7 +80,7 @@ def unauthorized(_):
 
 @app.route("/api/config")
 def config():
-    return jsonify({"public_demo": CONFIG.public_demo})
+    return jsonify({"public_demo": CONFIG.public_demo, "scenarios": list(SCENARIOS) if CONFIG.public_demo else []})
 
 
 @app.route("/api/register", methods=["POST"])
@@ -133,6 +133,22 @@ def logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/demo_reset", methods=["POST"])
+def demo_reset():
+    """Public demo only: replace the caller's own synthetic history with a chosen scenario."""
+    if not CONFIG.public_demo:
+        abort(404)
+    acc = current_account()
+    if not acc:
+        abort(401)
+    scenario = (request.get_json(force=True) or {}).get("scenario")
+    if scenario not in SCENARIOS:
+        return jsonify({"error": "Unknown scenario"}), 400
+    store.delete_user(acc["member"])
+    seed_history(store, acc["member"], 14, scenario, seed=secrets.randbits(32))
+    return jsonify({"ok": True, "scenario": scenario})
+
+
 @app.route("/api/delete_account", methods=["POST"])
 def delete_account():
     acc = current_account()
@@ -177,6 +193,24 @@ def summary():
 
 URINE_GROUPS = (("Pale yellow", (1, 2, 3)), ("Light amber", (4, 5)), ("Dark amber", (6, 7, 8)))
 CONSISTENCY = {1: "Hard lumps", 2: "Lumpy, hard", 3: "Firm", 4: "Smooth & soft", 5: "Soft blobs", 6: "Mushy", 7: "Liquid"}
+
+
+STOOL_COLOUR_ORDER = ("Brown", "Light brown", "Dark brown", "Green-ish", "Yellow", "Black", "Red-tinged")
+STOOL_QUANTITY_ORDER = ("Small", "Medium", "Large")
+
+
+def look_distribution(stool):
+    """Share of stool visits per colour / consistency / quantity; colour and amount only where measured."""
+    looks = [stool_look(s) for s in stool]
+
+    def dist(key, order):
+        known = [l[key] for l in looks if l[key]]
+        rows = [{"label": k, "pct": round(100 * known.count(k) / len(known))} for k in order if k in known]
+        return {"n": len(known), "rows": rows}
+
+    return {"colour": dist("colour", STOOL_COLOUR_ORDER),
+            "consistency": dist("consistency", tuple(CONSISTENCY.values())),
+            "quantity": dist("quantity", STOOL_QUANTITY_ORDER)}
 
 
 def stool_look(s):
@@ -238,6 +272,7 @@ def app_data():
         "trend": [{"day": d["day"], "digestive": d["digestive_score"], "hydration": d["hydration_score"]} for d in days[-14:]],
         "bristol": {"counts": bristol, "share": _share(bristol, len(stool)), "n": len(stool)},
         "condition": {"counts": condition, "share": _share(condition, len(stool))},
+        "look": look_distribution(stool),
         "urine": {"counts": urine_groups, "share": _share(urine_groups, len(urine)), "n": len(urine)},
         "gas7": gas7,
         "z_threshold": CONFIG.gas_z_threshold,

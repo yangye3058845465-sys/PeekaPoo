@@ -1,17 +1,8 @@
 import { AppData, Flag, TrendDay } from '../common/Models';
-import { C } from '../common/Theme';
-import { capitalize, digestiveLabel, fmtTime, greeting, hydrationLabel } from '../common/Format';
+import { C, levelColor, STOOL_HEX } from '../common/Theme';
+import { alertText, alertTitle, digestiveLabel, fmtTime, greeting, hydrationLabel } from '../common/Format';
 import { ScoreRing, TrendChart } from './Widgets';
 
-const STOOL_HEX: Record<string, string> = {
-  'Brown': '#8a5a3b',
-  'Light brown': '#c08a5c',
-  'Dark brown': '#4f3020',
-  'Green-ish': '#6f7d3c',
-  'Yellow': '#d4b44a',
-  'Black': '#1d1714',
-  'Red-tinged': '#9b3b32'
-};
 const QTY_LEVEL: Record<string, number> = { 'Small': 1, 'Medium': 2, 'Large': 3 };
 
 @Styles
@@ -123,6 +114,90 @@ export struct HomeTab {
     .padding({ top: 18, bottom: 14, left: 6, right: 6 })
     .borderRadius(22)
     .backgroundColor(bg)
+  }
+
+  alertTitleText(): string {
+    if (this.flags().length === 0) {
+      return 'All clear';
+    }
+    return this.level() === 'consult' ? 'ALERT! Unusual pattern detected' : 'Heads up: something changed';
+  }
+
+  alertSubText(): string {
+    if (this.flags().length === 0) {
+      return this.data !== null && this.data.visits > 0 ? 'No unusual patterns in your recent visits.' : "We'll let you know here if anything changes.";
+    }
+    return this.level() === 'consult' ? 'Compared with your own baseline' : "We'll keep watching over the next few days";
+  }
+
+  // always shown: all clear / watch / consult, between "Last stool" and "Last 7 days"
+  @Builder
+  alertModule() {
+    Column({ space: 10 }) {
+      Row({ space: 12 }) {
+        Text(this.flags().length === 0 ? '✓' : '!')
+          .width(36)
+          .height(36)
+          .borderRadius(18)
+          .textAlign(TextAlign.Center)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(C.INK)
+          .backgroundColor(levelColor(this.level()))
+        Column({ space: 2 }) {
+          Text(this.alertTitleText())
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(levelColor(this.level()))
+          Text(this.alertSubText())
+            .fontSize(12)
+            .fontColor(C.MUTED)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+      }
+      .width('100%')
+
+      ForEach(this.flags(), (f: Flag) => {
+        Row({ space: 10 }) {
+          Column()
+            .width(3)
+            .alignSelf(ItemAlign.Stretch)
+            .borderRadius(2)
+            .backgroundColor(levelColor(f.level))
+          Column({ space: 2 }) {
+            Text(alertTitle(f.code))
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(C.TEXT)
+            Text(alertText(f.code, f.detail))
+              .fontSize(14)
+              .lineHeight(20)
+              .fontColor('#e6e2f7')
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .padding({ top: 10, bottom: 10, left: 10, right: 12 })
+        .borderRadius(14)
+        .backgroundColor('#0affffff')
+      }, (f: Flag) => f.code)
+
+      if (this.flags().length > 0) {
+        Text('See details →')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(C.LIME)
+          .onClick(() => {
+            this.onGoto(2);
+          })
+      }
+    }
+    .alignItems(HorizontalAlign.Start)
+    .card()
+    .backgroundColor(this.level() === 'consult' ? '#2a1730' : (this.level() === 'watch' ? '#2b2130' : C.CARD))
+    .border({ width: 1, color: this.level() === 'consult' ? '#5a2a3a' : (this.level() === 'watch' ? '#5a4630' : C.LINE) })
   }
 
   @Builder
@@ -277,32 +352,7 @@ export struct HomeTab {
 
           this.stoolCard()
 
-          if (this.flags().length > 0) {
-            Column({ space: 6 }) {
-              Text(this.level() === 'consult' ? 'ALERT! Unusual pattern detected' : 'Heads up: something changed')
-                .fontSize(13)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.level() === 'consult' ? C.RED : C.AMBER)
-              ForEach(this.flags(), (f: Flag) => {
-                Text('• ' + capitalize(f.detail))
-                  .fontSize(15)
-                  .lineHeight(22)
-                  .fontColor(C.TEXT)
-              }, (f: Flag) => f.code)
-              Text('See details →')
-                .fontSize(14)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(C.LIME)
-                .margin({ top: 4 })
-                .onClick(() => {
-                  this.onGoto(2);
-                })
-            }
-            .alignItems(HorizontalAlign.Start)
-            .card()
-            .backgroundColor('#2a1730')
-            .border({ width: 1, color: '#5a2a3a' })
-          }
+          this.alertModule()
 
           Column({ space: 4 }) {
             Row() {

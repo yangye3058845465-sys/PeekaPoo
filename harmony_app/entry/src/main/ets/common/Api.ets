@@ -14,6 +14,10 @@ interface RegisterBody {
   member: string;
 }
 
+interface ScenarioBody {
+  scenario: string;
+}
+
 interface AskBody {
   user: string;
   question: string;
@@ -86,6 +90,12 @@ export class Api {
 
   static async deleteAccount(): Promise<void> {
     await call('/api/delete_account', http.RequestMethod.POST, null);
+  }
+
+  // public demo only: replace your own sample readings with a scenario
+  static async demoReset(scenario: string): Promise<void> {
+    const b: ScenarioBody = { scenario: scenario };
+    await call('/api/demo_reset', http.RequestMethod.POST, b);
   }
 
   // public demo hubs give every sign-up its own data, so there is no device button to pick

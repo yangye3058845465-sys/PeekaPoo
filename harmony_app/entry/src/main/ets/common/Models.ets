@@ -43,6 +43,23 @@ export interface Dist {
   n?: number;
 }
 
+export interface LookRow {
+  label: string;
+  pct: number;
+}
+
+export interface LookDist {
+  n: number;
+  rows: LookRow[];
+}
+
+// share of stool visits per colour / consistency / quantity
+export interface Look {
+  colour: LookDist;
+  consistency: LookDist;
+  quantity: LookDist;
+}
+
 export interface GasDay {
   day: string;
   NH3: number | null;
@@ -84,6 +101,7 @@ export interface AppData {
   trend: TrendDay[];
   bristol: Dist;
   condition: Dist;
+  look: Look;
   urine: Dist;
   gas7: GasDay[];
   z_threshold: number;
@@ -124,4 +142,5 @@ export class ChatMsg {
 
 export interface ServerConfig {
   public_demo: boolean;
+  scenarios?: string[];
 }

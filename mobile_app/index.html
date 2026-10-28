@@ -70,10 +70,17 @@
         </div>
       </article>
 
-      <article class="card card--alert" id="alert-card" hidden>
-        <p class="eyebrow eyebrow--red" id="alert-title">Unusual pattern detected</p>
-        <ul class="flag-list" id="alert-flags"></ul>
-        <button class="link" data-goto="alerts">See details →</button>
+
+      <article class="card alert-mod alert-mod--normal" id="alert-card">
+        <div class="alert-mod__head">
+          <span class="alert-mod__icon" id="alert-icon" aria-hidden="true">✓</span>
+          <div>
+            <p class="alert-mod__title" id="alert-title">All clear</p>
+            <p class="alert-mod__sub" id="alert-sub">Loading…</p>
+          </div>
+        </div>
+        <ul class="alert-list" id="alert-flags"></ul>
+        <button class="link" data-goto="alerts" id="alert-more" hidden>See details →</button>
       </article>
 
       <article class="card">
@@ -97,9 +104,9 @@
       <div class="note" id="bristol-note">-</div>
 
       <div class="chips" id="chips">
-        <button class="chip is-on" data-view="consistency">Consistency</button>
-        <button class="chip" data-view="scores">Daily scores</button>
-        <button class="chip" data-view="visits">Visits</button>
+        <button class="chip is-on" data-view="colour">Colour</button>
+        <button class="chip" data-view="consistency">Consistency</button>
+        <button class="chip" data-view="quantity">Quantity</button>
       </div>
       <div id="chip-view"></div>
 
@@ -173,6 +180,17 @@
         <div class="device-row"><span>Huawei Cloud sync</span><b id="sys-cloud">-</b></div>
         <div class="device-row"><span>Data source</span><b id="sys-data">-</b></div>
       </article>
+
+      <div id="demo-box" hidden>
+        <p class="label">Demo data</p>
+        <p class="muted small">Replace your sample readings with a scenario to see how PeekaPoo reacts.</p>
+        <div class="members" id="demo-scenarios">
+          <button class="member" data-sc="healthy">Healthy week</button>
+          <button class="member" data-sc="ammonia_high">High ammonia</button>
+          <button class="member" data-sc="constipation_gas">Constipation</button>
+        </div>
+        <p class="muted small" id="demo-status"></p>
+      </div>
 
       <p class="label">Privacy</p>
       <article class="card privacy">

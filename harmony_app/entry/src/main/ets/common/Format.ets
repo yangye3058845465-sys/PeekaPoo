@@ -94,3 +94,30 @@ export function greeting(): string {
   }
   return h < 18 ? 'Good afternoon' : 'Good evening';
 }
+
+// Home alert module: plain-language version of each triage flag. The level itself comes from the hub's rules.
+const ALERT_TEXT: Record<string, string[]> = {
+  'GAS_NH3': ['Unusual ammonia level', 'Ammonia from your visits has stayed above your personal baseline for {n} days. Drink more water, and consult a doctor if you are feeling uncomfortable.'],
+  'GAS_H2S': ['Unusual sulphide gas', 'Sulphide gas has stayed above your personal baseline for {n} days. Notice whether it follows particular foods, and consult a doctor if you are feeling uncomfortable.'],
+  'GAS_VOC': ['Unusual VOC signal', 'The VOC signal has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable.'],
+  'GAS_CH4': ['Unusual methane level', 'Methane has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable.'],
+  'GAS_H2': ['Unusual hydrogen level', 'Hydrogen has stayed above your personal baseline for {n} days. Consult a doctor if you are feeling uncomfortable.'],
+  'HARD_STOOL': ['Hard stools', 'Your stools have been hard (Bristol 1–2) for {n} days in a row. Drink water through the day and add fibre such as oats, fruit and vegetables.'],
+  'LOOSE_STOOL': ['Loose stools', 'Your stools have been loose (Bristol 6–7) for {n} days in a row. Sip fluids often and choose simple, bland meals.'],
+  'LOW_HYDRATION': ['Low hydration', 'Your urine has been darker than usual for {n} days. Keep a water bottle nearby and drink regularly.'],
+  'NO_BOWEL_MOVEMENT': ['No bowel movement', 'No bowel movement has been recorded for {n} days. Try a regular toilet time after meals and some light walking.']
+};
+
+export function alertTitle(code: string): string {
+  const t = ALERT_TEXT[code];
+  return t !== undefined ? t[0] : flagTitle(code);
+}
+
+export function alertText(code: string, detail: string): string {
+  const t = ALERT_TEXT[code];
+  if (t === undefined) {
+    return capitalize(detail);
+  }
+  const m = detail.match(/(\d+)/);
+  return t[1].replace('{n}', m !== null ? m[1] : 'several');
+}
