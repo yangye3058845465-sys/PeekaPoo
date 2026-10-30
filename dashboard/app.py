@@ -191,7 +191,8 @@ def summary():
     })
 
 
-URINE_GROUPS = (("Pale yellow", (1, 2, 3)), ("Light amber", (4, 5)), ("Dark amber", (6, 7, 8)))
+URINE_GROUPS = (("Clear", (1,)), ("Light yellow", (2,)), ("Yellow", (3,)), ("Dark yellow", (4, 5)),
+                ("Amber", (6, 7)), ("Brown", (8,)))
 CONSISTENCY = {1: "Hard lumps", 2: "Lumpy, hard", 3: "Firm", 4: "Smooth & soft", 5: "Soft blobs", 6: "Mushy", 7: "Liquid"}
 
 

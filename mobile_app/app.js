@@ -209,13 +209,7 @@ function renderData(d) {
     `<button class="bss ${`T${t}` === top ? "is-hi" : ""}" data-t="${t}">${bssImage(t)}<span>${BSS[t].short}</span></button>`).join("");
   $$("#bss-grid .bss").forEach(b => b.onclick = () => openSheet(+b.dataset.t));
 
-  const uShare = d.urine.share;
-  const ucol = { "Pale yellow": "#f4f1c9", "Light amber": "#bfe0d4", "Dark amber": "#6f8fbf" };
-  $("#urine-bars").innerHTML = ["Pale yellow", "Light amber", "Dark amber"].map(k => hbar(k, uShare[k], ucol[k])).join("");
-  const dark = uShare["Dark amber"];
-  $("#urine-note").textContent = !d.urine.n ? "No urine visits yet."
-    : dark >= 30 ? `Dark amber on ${dark}% of visits: drinking a little more water through the day may help.`
-    : "Mostly pale yellow to light amber this month, consistent with a well-hydrated baseline.";
+  renderUrine(d);
 
   gasBars($("#nh3-bars"), d.gas7, "NH3", d.z_threshold);
   gasBars($("#voc-bars"), d.gas7, "VOC", d.z_threshold);
@@ -228,6 +222,51 @@ function renderData(d) {
 // Bar heights in px (a % height would shrink every bar equally to make room for the labels).
 // Gas readings sit in a narrow band, so scale over the week's own range instead of from zero.
 const GAS_PLOT = 84, BRISTOL_PLOT = 104;
+
+// hydration scale the camera grades; the hub's urine levels 1-8 fold into these six tubes
+const URINE_TUBES = [["Clear", "#f4f2ea"], ["Light yellow", "#fbf3b5"], ["Yellow", "#f9ea6b"],
+                     ["Dark yellow", "#f3cf35"], ["Amber", "#f2a528"], ["Brown", "#d48a4c"]];
+const LEVEL_TUBE = [0, 0, 1, 2, 3, 3, 4, 4, 5];
+
+// reference guide only: the camera does not classify these colours
+const UNUSUAL_URINE = [
+  { name: "Pink / Red", hex: "#d9534f", food: "Beetroot, red dragon fruit, blackberries or rhubarb.",
+    doctor: "If you haven't eaten any of these, red can mean blood in the urine. Please see a doctor." },
+  { name: "Green", hex: "#9fc63b", food: "Asparagus or food colouring.",
+    doctor: "Some medicines and test dyes do this too. See a doctor if it lasts, or if peeing burns." },
+  { name: "Blue", hex: "#4f9a9e", food: "Food colouring.",
+    doctor: "Usually dyes from medicines or medical tests. Ask a doctor or pharmacist if you're unsure." },
+  { name: "Dark brown", hex: "#5b3a2e", food: "Fava beans, rhubarb or aloe.",
+    doctor: "Can come with severe dehydration or a liver or bile-duct problem. See a doctor if it lasts, especially with pale stool or yellow skin." },
+  { name: "Black", hex: "#1a1414", food: "Rarely, food colouring.",
+    doctor: "This is very uncommon. Please see a doctor." },
+  { name: "Milky", hex: "#f3e7a6", food: "Protein-rich meals such as anchovies, herring or red meat.",
+    doctor: "Can come with an infection or kidney stones. See a doctor if you also have pain, fever or burning." },
+];
+let ucolSel = 0;
+
+function renderUrine(d) {
+  const me = d.hydration ? LEVEL_TUBE[d.hydration.level] : -1;
+  $("#urine-tubes").innerHTML = URINE_TUBES.map(([name, hex], i) =>
+    `<div class="tube ${i === me ? "is-me" : ""}"><span>${name}</span><div class="tube__glass"><i style="background:${hex}"></i></div>${i === me ? "<b>Latest</b>" : ""}</div>`).join("");
+
+  const share = d.urine.share;
+  $("#urine-bars").innerHTML = URINE_TUBES.map(([name, hex]) => hbar(name, share[name] || 0, hex)).join("");
+  const dark = (share["Amber"] || 0) + (share["Brown"] || 0);
+  $("#urine-note").textContent = !d.urine.n ? "No urine visits yet."
+    : dark >= 30 ? `Amber or brown on ${dark}% of visits: drinking a little more water through the day may help.`
+    : "Mostly clear to yellow this month, consistent with a well-hydrated baseline.";
+  renderUnusualUrine();
+}
+
+function renderUnusualUrine() {
+  $("#ucol-grid").innerHTML = UNUSUAL_URINE.map((c, i) =>
+    `<button class="ucol ${i === ucolSel ? "is-on" : ""}" data-i="${i}"><i style="background:${c.hex}"></i>${c.name}</button>`).join("");
+  $$("#ucol-grid .ucol").forEach(b => b.onclick = () => { ucolSel = +b.dataset.i; renderUnusualUrine(); });
+  const c = UNUSUAL_URINE[ucolSel];
+  $("#ucol-info").innerHTML = `<p><b>${c.name}</b>: often from food. ${c.food}</p><p>${c.doctor}</p>
+    <p class="muted small">Reference guide. PeekaPoo's camera grades the hydration scale above, not these colours.</p>`;
+}
 
 function gasBars(el, gas7, ch, thr) {
   const vals = gas7.map(g => g[ch]).filter(v => v != null);

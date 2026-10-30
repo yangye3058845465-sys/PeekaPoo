@@ -1,5 +1,5 @@
 import { AppData, GasDay, LookRow } from '../common/Models';
-import { C, STOOL_HEX } from '../common/Theme';
+import { C, LEVEL_TUBE, STOOL_HEX, UNUSUAL_URINE, URINE_HEX, URINE_TUBES, UrineColour } from '../common/Theme';
 import { weekday } from '../common/Format';
 import { BSS, BSS_IMG, BSS_NOTE } from '../common/Bristol';
 import { BarColumn, HBar } from './Widgets';
@@ -41,6 +41,14 @@ function note() {
   .border({ width: 1, color: C.LINE })
 }
 
+@Extend(Text)
+function arrowLabel() {
+  .fontSize(10.5)
+  .fontStyle(FontStyle.Italic)
+  .fontColor(C.MUTED)
+  .textAlign(TextAlign.Center)
+}
+
 @Component
 export struct DataTab {
   @Prop data: AppData | null = null;
@@ -52,8 +60,7 @@ export struct DataTab {
   private types: number[] = [1, 2, 3, 4, 5, 6, 7];
   private views: string[] = ['colour', 'consistency', 'quantity'];
   private viewNames: string[] = ['Colour', 'Consistency', 'Quantity'];
-  private urineKeys: string[] = ['Pale yellow', 'Light amber', 'Dark amber'];
-  private urineColors: string[] = ['#f4f1c9', C.MINT, C.BLUE];
+  @State ucolSel: number = 0;
 
   /* ---------- bristol ---------- */
   n(): number {
@@ -136,11 +143,129 @@ export struct DataTab {
     if (this.data === null || (this.data.urine.n ?? 0) === 0) {
       return 'No urine visits yet.';
     }
-    const dark = this.urine('Dark amber');
+    const dark = this.urine('Amber') + this.urine('Brown');
     if (dark >= 30) {
-      return `Dark amber on ${dark}% of visits: drinking a little more water through the day may help.`;
+      return `Amber or brown on ${dark}% of visits: drinking a little more water through the day may help.`;
     }
-    return 'Mostly pale yellow to light amber this month, consistent with a well-hydrated baseline.';
+    return 'Mostly clear to yellow this month, consistent with a well-hydrated baseline.';
+  }
+
+  // tube index of the latest urine visit, -1 if none
+  latestTube(): number {
+    return this.data === null || this.data.hydration === null ? -1 : (LEVEL_TUBE[this.data.hydration.level] ?? -1);
+  }
+
+  @Builder
+  urineScale() {
+    Row() {
+      ForEach(URINE_TUBES, (name: string, i: number) => {
+        Column({ space: 6 }) {
+          Text(name)
+            .fontSize(10.5)
+            .lineHeight(13)
+            .fontColor(i === this.latestTube() ? C.LIME : C.MUTED)
+            .fontWeight(i === this.latestTube() ? FontWeight.Bold : FontWeight.Normal)
+            .textAlign(TextAlign.Center)
+            .align(Alignment.Bottom)
+            .height(28)
+          Stack({ alignContent: Alignment.Bottom }) {
+            Column()
+              .width('100%')
+              .height('80%')
+              .backgroundColor(URINE_HEX[i])
+          }
+          .width(26)
+          .height(78)
+          .border({ width: { left: 2, right: 2, bottom: 2, top: 0 },
+            color: i === this.latestTube() ? C.LIME : '#8d86ad' })
+          .borderRadius({ topLeft: 0, topRight: 0, bottomLeft: 13, bottomRight: 13 })
+          .clip(true)
+          Text(i === this.latestTube() ? 'Latest' : ' ')
+            .fontSize(10)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(C.LIME)
+        }
+        .layoutWeight(1)
+      }, (name: string) => name)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+
+    // hydrated -> dehydrated arrow under the tubes
+    Row() {
+      Column()
+        .layoutWeight(1)
+        .height(4)
+        .linearGradient({
+          direction: GradientDirection.Right,
+          colors: [['#f4f2ea', 0], ['#f9ea6b', 0.35], ['#f2a528', 0.7], ['#c8642e', 1]]
+        })
+      Polygon({ width: 12, height: 12 })
+        .points([[0, 0], [12, 6], [0, 12]])
+        .fill('#c8642e')
+    }
+    .width('100%')
+    .margin({ top: 8 })
+    Row() {
+      Text('Hydrated').arrowLabel().layoutWeight(3)
+      Text('Light dehydrated').arrowLabel().layoutWeight(1)
+      Text('Dehydrated').arrowLabel().layoutWeight(1)
+      Text('Severe').arrowLabel().layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+    .margin({ top: 4 })
+  }
+
+  @Builder
+  unusualUrine() {
+    Flex({ wrap: FlexWrap.Wrap }) {
+      ForEach(UNUSUAL_URINE, (c: UrineColour, i: number) => {
+        Row({ space: 8 }) {
+          Circle({ width: 16, height: 16 })
+            .fill(c.hex)
+            .stroke('#55507a')
+          Text(c.name)
+            .fontSize(13)
+            .fontColor(C.TEXT)
+            .layoutWeight(1)
+        }
+        .padding({ left: 10, right: 8, top: 9, bottom: 9 })
+        .borderRadius(14)
+        .backgroundColor(C.CARD)
+        .border({ width: 1, color: i === this.ucolSel ? C.LIME : C.LINE })
+        .width('31.5%')
+        .margin({ right: '1.8%', bottom: 8 })
+        .onClick(() => {
+          this.ucolSel = i;
+        })
+      }, (c: UrineColour) => c.name)
+    }
+    .width('100%')
+
+    Column({ space: 6 }) {
+      Text() {
+        Span(UNUSUAL_URINE[this.ucolSel].name)
+          .fontColor(C.LIME)
+          .fontWeight(FontWeight.Medium)
+        Span(`: often from food. ${UNUSUAL_URINE[this.ucolSel].food}`)
+          .fontColor(C.TEXT)
+      }
+      .fontSize(14)
+      .lineHeight(21)
+      .width('100%')
+      Text(UNUSUAL_URINE[this.ucolSel].doctor)
+        .fontSize(14)
+        .lineHeight(21)
+        .fontColor(C.TEXT)
+        .width('100%')
+      Text("Reference guide. PeekaPoo's camera grades the hydration scale above, not these colours.")
+        .fontSize(11)
+        .fontColor(C.MUTED)
+        .width('100%')
+    }
+    .card()
+    .margin({ top: 4 })
   }
 
   gas(): GasDay[] {
@@ -416,11 +541,17 @@ export struct DataTab {
           .fontColor(C.MUTED)
           .width('100%')
 
+        Text('Urine colour scale').label()
+        this.urineScale()
+
         Text('Urine colour, this month').label()
-        ForEach(this.urineKeys, (k: string, i: number) => {
-          HBar({ label: k, pct: this.urine(k), barColor: this.urineColors[i] })
+        ForEach(URINE_TUBES, (k: string, i: number) => {
+          HBar({ label: k, pct: this.urine(k), barColor: URINE_HEX[i] })
         }, (k: string) => k)
         Text(this.urineNote()).note()
+
+        Text('Unusual colours · tap to learn').label()
+        this.unusualUrine()
 
         Text('Ammonia (NH₃), past 7 days').label()
         this.gasChart(true)

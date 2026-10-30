@@ -145,6 +145,25 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .visit-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .visit-row:last-child { border: 0; }
 
+/* Urine colour scale: test tubes over a hydrated -> dehydrated arrow */
+.tubes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: start; }
+.tube > span { min-height: 2.4em; display: flex; align-items: flex-end; }
+.tube b { font-size: 10px; }
+.tube { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10.5px; line-height: 1.2; text-align: center; color: var(--muted); }
+.tube__glass { width: 26px; height: 78px; border: 2px solid #8d86ad; border-top: 0; border-radius: 0 0 13px 13px; position: relative; overflow: hidden; }
+.tube__glass i { position: absolute; left: 0; right: 0; bottom: 0; height: 80%; }
+.tube.is-me { color: var(--lime); font-weight: 600; }
+.tube.is-me .tube__glass { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(198, 244, 50, .25); }
+.hyd-arrow { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; padding-top: 16px; font-size: 10.5px; font-style: italic; color: var(--muted); text-align: center; }
+.hyd-arrow i { position: absolute; top: 0; left: 0; right: 0; height: 10px; background: linear-gradient(90deg, #f4f2ea, #f9ea6b, #f2a528, #c8642e); clip-path: polygon(0 30%, 95% 30%, 95% 0, 100% 50%, 95% 100%, 95% 70%, 0 70%); }
+.ucol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ucol { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); font-size: 13px; text-align: left; }
+.ucol i { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .25); }
+.ucol.is-on { border-color: var(--lime); }
+#ucol-info b { color: var(--lime); font-weight: 600; }
+#ucol-info p { margin: 0 0 6px; }
+#ucol-info p:last-child { margin: 0; }
+
 /* Bristol grid */
 .bss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .bss { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
