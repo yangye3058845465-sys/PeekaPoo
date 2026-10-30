@@ -1,4 +1,5 @@
 import re
+import time
 
 DISCLAIMER = ("PeekaPoo is a wellness screening aid, not a medical diagnosis. "
               "If you feel unwell, please talk to a healthcare professional.")
@@ -32,6 +33,62 @@ Rules you must follow:
 TASK_REPORT = ("Write a short message for the user about this toilet visit: one sentence explaining the result, "
                "then 2 or 3 short practical tips (water, fibre, movement, routine) that fit the data.")
 
+TASK_STOOL_TODAY = ("The user asked you to analyse their stool. Start by telling them what you noticed "
+                    "(colour, anything visible) and its likely food cause from DATA, then give the result "
+                    "(Bristol type, Digestive Score, hydration), then 2 or 3 short practical tips. "
+                    "Repeat any 'Caution' line from DATA.")
+
+STOOL_TODAY = re.compile(r"(analy[sz]|check|assess|review|look at|examine).*\b(stool|poo\w*|bowel)|"
+                         r"\b(stool|poo\w*)\b.*\btoday|today'?s (stool|poo)|(分析|看看|检查).*(大便|粪便)", re.I)
+
+# what a colour / visible content most often comes from in food, and the tip that goes with it
+COLOUR_NOTES = {
+    "Red-tinged": {
+        "seen": "your stool has a reddish tint",
+        "cause": "most likely from red dragon fruit (pitaya) or beetroot you ate in the last day or two, as their "
+                 "natural red pigment passes straight through and can colour stool and even urine",
+        "keyword": "dragon fruit",
+        "caution": "If you have not eaten dragon fruit or beetroot recently, or the red colour is still there "
+                   "after 2 days, please talk to a doctor, because red can also come from blood.",
+    },
+    "Green-ish": {
+        "seen": "your stool looks a little green",
+        "cause": "most likely leafy greens or green-coloured food, or food passing through a bit faster",
+        "keyword": "green",
+    },
+    "Black": {
+        "seen": "your stool looks very dark, almost black",
+        "cause": "which can come from iron-rich food, blueberries or black liquorice",
+        "keyword": "iron",
+        "caution": "If you have not eaten any of these, or you feel weak or dizzy, please contact a doctor "
+                   "today, because black stool can be a sign of bleeding higher up in the gut.",
+    },
+    "Yellow": {
+        "seen": "your stool looks yellowish",
+        "cause": "which often follows a rich or fatty meal",
+        "keyword": "fatty",
+    },
+}
+INCLUSION_NOTES = {
+    "Undigested fibre": {
+        "seen": "some undigested plant fibre",
+        "cause": "probably from vegetables you ate - skins, stalks and leafy parts are often only partly "
+                 "digested, and that is normal",
+        "keyword": "vegetable",
+        "tip": "Chew vegetables well, or cook tougher ones a little longer, so you get more out of them.",
+    },
+}
+
+
+def look_notes(session):
+    """Colour / inclusion observations for a stool visit, each with its likely food cause."""
+    notes = []
+    if session and session.get("has_stool"):
+        if session.get("stool_colour") in COLOUR_NOTES:
+            notes.append(COLOUR_NOTES[session["stool_colour"]])
+        notes += [INCLUSION_NOTES[i] for i in session.get("stool_inclusions") or [] if i in INCLUSION_NOTES]
+    return notes
+
 
 def build_facts(session, days, triage_result):
     lines = []
@@ -40,6 +97,14 @@ def build_facts(session, days, triage_result):
             lines.append(f"Stool type this visit: Bristol type {session['bristol_type']} "
                          f"(scale 1 hard to 7 watery; 3-5 is typical)")
             lines.append(f"Stool pattern: {session['condition']}")
+            if session.get("stool_colour"):
+                lines.append(f"Stool colour this visit: {session['stool_colour']}")
+            if session.get("stool_quantity"):
+                lines.append(f"Stool amount this visit: {session['stool_quantity']}")
+            for note in look_notes(session):
+                lines.append(f"Noticed: {note['seen']}; likely cause: {note['cause']}")
+                if note.get("caution"):
+                    lines.append(f"Caution: {note['caution']}")
             if session.get("digestive_score") is not None:
                 lines.append(f"Digestive Score this visit: {session['digestive_score']} out of 100")
         if session.get("has_urine"):
@@ -181,6 +246,67 @@ def template_report(session, triage_result):
     return " ".join(parts)
 
 
+CONSISTENCY = {1: "hard lumps", 2: "lumpy and hard", 3: "firm", 4: "smooth and soft", 5: "soft blobs",
+               6: "mushy", 7: "liquid"}
+
+
+def stool_today_report(stool, triage_result, now=None):
+    """'Analyse my stool today': what was noticed and why, today's result, then advice."""
+    if not stool:
+        return "I haven't seen a stool visit from you yet. Once PeekaPoo records one, ask me again!"
+    age_days = int(((now or time.time()) - stool["start_ts"]) // 86400)
+    when = "today" if age_days == 0 else ("yesterday" if age_days == 1 else f"{age_days} days ago")
+    paras = []
+    if age_days > 0:
+        paras.append(f"I don't have a stool visit from today yet, so here is your latest one ({when}).")
+
+    notes = look_notes(stool)
+    if notes:
+        seen = f"Oh, I noticed {notes[0]['seen']} - {notes[0]['cause']}."
+        for n in notes[1:]:
+            seen += f" I also spotted {n['seen']}, {n['cause']}."
+        paras.append(seen)
+    elif stool.get("stool_colour"):
+        paras.append(f"Colour looked {stool['stool_colour'].lower()}, and I didn't spot anything unusual in it.")
+
+    bt = stool["bristol_type"]
+    feel = "in the typical range" if 3 <= bt <= 5 else ("on the hard side" if bt < 3 else "on the loose side")
+    result = f"Result for {when}: Bristol type {bt} ({CONSISTENCY[bt]}), which is {feel}"
+    if stool.get("stool_quantity"):
+        result += f", {stool['stool_quantity'].lower()} amount"
+    result += "."
+    if stool.get("digestive_score") is not None:
+        result += f" Digestive Score {stool['digestive_score']}/100."
+    if stool.get("has_urine"):
+        hs = stool["hydration_score"]
+        result += f" Hydration Score {hs}/100" + (" - nicely hydrated." if hs >= 65 else
+                                                   (" - a little low." if hs >= 40 else " - low."))
+    paras.append(result)
+
+    tips = [n["tip"] for n in notes if n.get("tip")]
+    if bt < 3:
+        tips.append(TIPS["HARD_STOOL"])
+    elif bt > 5:
+        tips.append(TIPS["LOOSE_STOOL"])
+    if stool.get("has_urine") and stool["hydration_score"] < 50:
+        tips.append(TIPS["LOW_HYDRATION"])
+    if not tips:
+        tips.append("Keep up your current routine of water, fibre and movement.")
+    elif len(tips) < 2:
+        tips.append("Keep drinking water through the day - fibre works best with enough fluid.")
+    paras.append("My suggestions:\n" + "\n".join("- " + t for t in tips[:3]))
+
+    cautions = [n["caution"] for n in notes if n.get("caution")]
+    if triage_result["level"] == "consult":
+        cautions.append("Because some readings have been off for several days, it is a good idea to talk "
+                        "to a doctor or healthcare professional.")
+    elif triage_result["level"] == "watch":
+        cautions.append("Some readings have been a little off recently - I'll keep an eye on them over the next few days.")
+    if cautions:
+        paras.append(" ".join(cautions))
+    return "\n\n".join(paras)
+
+
 class GutAdvisor:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -209,9 +335,25 @@ class GutAdvisor:
         return {"text": text, "disclaimer": DISCLAIMER, "source": source,
                 "guard": reason, "level": triage_result["level"]}
 
-    def ask(self, question, days, triage_result, last_session=None):
+    def analyse_stool(self, stool, days, triage_result):
+        facts = build_facts(stool, days, triage_result)
+        text, reason = (self._generate(facts, triage_result["level"], TASK_STOOL_TODAY) if stool
+                        else (None, "no-stool"))
+        # the small model must keep every food cause and caution, otherwise the rule-based wording is used
+        notes = look_notes(stool)
+        if text and not all(n["keyword"] in text.lower() for n in notes):
+            text, reason = None, "missing-observation"
+        if text and any(n.get("caution") for n in notes) and not CLINICIAN.search(text):
+            text, reason = None, "missing-caution"
+        source = self.backend.name if text else "template"
+        return {"text": text or stool_today_report(stool, triage_result), "disclaimer": DISCLAIMER,
+                "source": source, "guard": reason}
+
+    def ask(self, question, days, triage_result, last_session=None, last_stool=None):
         if EMERGENCY_TERMS.search(question):
             return {"text": EMERGENCY_ANSWER, "disclaimer": DISCLAIMER, "source": "rule", "guard": "emergency"}
+        if STOOL_TODAY.search(question):
+            return self.analyse_stool(last_stool, days, triage_result)
         facts = build_facts(last_session, days, triage_result)
         text, reason = self._generate(facts, triage_result["level"],
                                       f"The user asks: \"{question.strip()[:300]}\"\n"

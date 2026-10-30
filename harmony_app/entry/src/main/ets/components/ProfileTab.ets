@@ -39,7 +39,8 @@ export struct ProfileTab {
   private scenarios: string[][] = [
     ['healthy', 'Healthy week'],
     ['ammonia_high', 'High ammonia'],
-    ['constipation_gas', 'Constipation']
+    ['constipation_gas', 'Constipation'],
+    ['dragon_fruit', 'Dragon fruit']
   ];
   private privacy: string[] = [
     'Images are analysed on the device and never uploaded',

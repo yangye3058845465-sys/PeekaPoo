@@ -408,7 +408,7 @@ function logout(callServer = true) {
 }
 $("#logout").onclick = () => logout(true);
 
-const SCENARIO_NAMES = { healthy: "Healthy week", ammonia_high: "High ammonia", constipation_gas: "Constipation" };
+const SCENARIO_NAMES = { healthy: "Healthy week", ammonia_high: "High ammonia", constipation_gas: "Constipation", dragon_fruit: "Dragon fruit" };
 $$("#demo-scenarios [data-sc]").forEach(b => b.onclick = async () => {
   const status = $("#demo-status");
   status.textContent = "Updating your sample readings…";

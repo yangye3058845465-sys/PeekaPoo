@@ -293,7 +293,8 @@ def ask():
     if not question:
         return jsonify({"error": "empty question"}), 400
     sessions, days, tri = user_state(user)
-    return jsonify(advisor().ask(question, days, tri, sessions[-1] if sessions else None))
+    last_stool = next((s for s in reversed(sessions) if s.get("has_stool")), None)
+    return jsonify(advisor().ask(question, days, tri, sessions[-1] if sessions else None, last_stool))
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ struct Chat {
   private scroller: Scroller = new Scroller();
   private member: string = Session.get('view', Session.get('member', 'user1'));
   private suggestions: string[] = [
+    'Analyse my stool today',
     'Currently is my gut health okay?',
     "How's my stool pattern this week?",
     'Why is my hydration score low?'
