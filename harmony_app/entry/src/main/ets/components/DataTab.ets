@@ -1,8 +1,11 @@
-import { AppData, GasDay, LookRow } from '../common/Models';
+import { AppData, GasDay, GasRef, LookRow } from '../common/Models';
 import { C, LEVEL_TUBE, STOOL_HEX, UNUSUAL_URINE, URINE_HEX, URINE_TUBES, UrineColour } from '../common/Theme';
 import { weekday } from '../common/Format';
 import { BSS, BSS_IMG, BSS_NOTE } from '../common/Bristol';
 import { BarColumn, HBar } from './Widgets';
+
+// bar area of a gas card, in vp
+const GAS_PLOT: number = 104;
 
 const LOOK_EMPTY: Record<string, string> = {
   'colour': "Colour isn't measured for your visits yet.",
@@ -281,20 +284,52 @@ export struct DataTab {
     return this.data !== null && z !== null && z > this.data.z_threshold;
   }
 
-  // gas readings sit in a narrow band, so scale over the week's own range instead of from zero
-  gasRatio(g: GasDay, nh3: boolean): number {
-    let max = 1;
-    let min = Number.MAX_VALUE;
+  gasRef(nh3: boolean): GasRef | null {
+    if (this.data === null || this.data.gas_ref === undefined) {
+      return null;
+    }
+    return nh3 ? this.data.gas_ref.NH3 : this.data.gas_ref.VOC;
+  }
+
+  // bars start from zero; the scale also leaves room for the alert line
+  gasPx(v: number, nh3: boolean): number {
+    let top = 1;
     for (const d of this.gas()) {
-      const v = this.gasValue(d, nh3);
-      if (v !== null) {
-        max = Math.max(max, v);
-        min = Math.min(min, v);
+      const x = this.gasValue(d, nh3);
+      if (x !== null) {
+        top = Math.max(top, x);
       }
     }
-    const lo = min === Number.MAX_VALUE ? 0 : min * 0.7;
+    const ref = this.gasRef(nh3);
+    if (ref !== null) {
+      top = Math.max(top, ref.alert);
+    }
+    return Math.round(GAS_PLOT * v / (top * 1.12));
+  }
+
+  gasBarPx(g: GasDay, nh3: boolean): number {
     const v = this.gasValue(g, nh3);
-    return v === null ? 0.03 : 0.14 + 0.86 * (v - lo) / Math.max(1e-6, max - lo);
+    return v === null ? 3 : Math.max(6, this.gasPx(v, nh3));
+  }
+
+  isLatest(g: GasDay): boolean {
+    const days = this.gas();
+    return days.length > 0 && days[days.length - 1].day === g.day;
+  }
+
+  gasLatest(nh3: boolean): string {
+    const days = this.gas();
+    const v = days.length > 0 ? this.gasValue(days[days.length - 1], nh3) : null;
+    return v === null ? '–' : `${Math.round(v)}`;
+  }
+
+  // 0 learning, 1 within baseline, 2 above baseline (latest day)
+  gasState(nh3: boolean): number {
+    const days = this.gas();
+    if (this.data === null || this.data.gas_warming_up || this.gasRef(nh3) === null) {
+      return 0;
+    }
+    return days.length > 0 && this.gasHigh(days[days.length - 1], nh3) ? 2 : 1;
   }
 
   gasSub(g: GasDay, nh3: boolean): string {
@@ -302,43 +337,172 @@ export struct DataTab {
     return v === null ? '–' : `${Math.round(v)}`;
   }
 
-  nh3Note(): string {
+  gasNote(nh3: boolean): string {
     if (this.data === null) {
       return '';
     }
-    if (this.data.gas_warming_up) {
+    if (this.data.gas_warming_up || this.gasRef(nh3) === null) {
       return 'Still building your personal baseline (needs at least 5 days).';
     }
     const high: string[] = [];
     for (const g of this.data.gas7) {
-      if (this.gasHigh(g, true)) {
+      if (this.gasHigh(g, nh3)) {
         high.push(weekday(g.day));
       }
     }
     if (high.length === 0) {
       return 'Within your personal baseline all week.';
     }
-    return `Above your personal baseline on ${high.join(', ')}. An alert is raised only after 3 days in a row.`;
+    return `Above your baseline on ${high.join(', ')}. An alert is raised only after 3 days in a row.`;
   }
 
   /* ---------- builders ---------- */
   @Builder
-  gasChart(nh3: boolean) {
-    Row({ space: 8 }) {
-      ForEach(this.gas(), (g: GasDay) => {
-        Column() {
-          BarColumn({
-            ratio: this.gasRatio(g, nh3),
-            label: weekday(g.day).charAt(0),
-            sub: this.gasSub(g, nh3),
-            highlight: this.gasHigh(g, nh3),
-            chartHeight: 100
-          })
+  legendItem(color: string, text: string, value: number) {
+    Row({ space: 6 }) {
+      Column()
+        .width(16)
+        .height(0)
+        .border({ width: { top: 1.5 }, color: color, style: BorderStyle.Dashed })
+      Text() {
+        Span(`${text} `)
+          .fontColor(C.MUTED)
+        Span(`${Math.round(value)}`)
+          .fontColor(C.TEXT)
+          .fontWeight(FontWeight.Medium)
+      }
+      .fontSize(11)
+    }
+  }
+
+  // one gas channel: latest reading and status, 7 bars from zero, personal baseline and alert line across
+  @Builder
+  gasCard(nh3: boolean, title: string, sub: string) {
+    Column() {
+      Row() {
+        Column({ space: 2 }) {
+          Text(title)
+            .fontSize(17)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(C.TEXT)
+          Text(sub)
+            .fontSize(12)
+            .fontColor(C.MUTED)
         }
+        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
-      }, (g: GasDay) => g.day + (nh3 ? 'n' : 'v'))
+
+        Column({ space: 6 }) {
+          Row({ space: 4 }) {
+            Text(this.gasLatest(nh3))
+              .fontSize(30)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(C.TEXT)
+            Text('latest')
+              .fontSize(11)
+              .fontColor(C.MUTED)
+              .margin({ bottom: 4 })
+          }
+          .alignItems(VerticalAlign.Bottom)
+          Text(['Learning', 'Within baseline', 'Above baseline'][this.gasState(nh3)])
+            .fontSize(11)
+            .fontWeight(FontWeight.Bold)
+            .fontColor([C.MUTED, C.GREEN, C.RED][this.gasState(nh3)])
+            .backgroundColor(['#299a94b8', '#295ee0a0', '#2eff6b6b'][this.gasState(nh3)])
+            .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+            .borderRadius(999)
+        }
+        .alignItems(HorizontalAlign.End)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+
+      if (this.gasRef(nh3) !== null) {
+        Row({ space: 16 }) {
+          this.legendItem(C.MINT, 'Your baseline', (this.gasRef(nh3) as GasRef).median)
+          this.legendItem(C.RED, 'Alert line', (this.gasRef(nh3) as GasRef).alert)
+        }
+        .width('100%')
+        .margin({ top: 8, bottom: 12 })
+      }
+
+      Stack({ alignContent: Alignment.Bottom }) {
+        if (this.gasRef(nh3) !== null) {
+          Column()
+            .width('100%')
+            .height(this.gasPx((this.gasRef(nh3) as GasRef).alert, nh3))
+            .borderRadius({ bottomLeft: 10, bottomRight: 10 })
+            .linearGradient({ direction: GradientDirection.Top, colors: [['#1a5ee0a0', 0], ['#085ee0a0', 1]] })
+          Column()
+            .width('100%')
+            .height(0)
+            .border({ width: { top: 1 }, color: '#99ff6b6b', style: BorderStyle.Dashed })
+            .position({ x: 0, y: GAS_PLOT + 6 - this.gasPx((this.gasRef(nh3) as GasRef).alert, nh3) })
+          Column()
+            .width('100%')
+            .height(0)
+            .border({ width: { top: 1 }, color: '#8cbfe0d4', style: BorderStyle.Dashed })
+            .position({ x: 0, y: GAS_PLOT + 6 - this.gasPx((this.gasRef(nh3) as GasRef).median, nh3) })
+        }
+        Row() {
+          ForEach(this.gas(), (g: GasDay) => {
+            Column() {
+              Column()
+                .width('58%')
+                .constraintSize({ maxWidth: 24 })
+                .height(this.gasBarPx(g, nh3))
+                .borderRadius({ topLeft: 8, topRight: 8, bottomLeft: 3, bottomRight: 3 })
+                .linearGradient({
+                  direction: GradientDirection.Bottom,
+                  colors: this.gasHigh(g, nh3) ? [['#ff8a7a', 0], ['#8cffb547', 1]] : [['#bfe0d4', 0], ['#47bfe0d4', 1]]
+                })
+                .border(this.isLatest(g) ? { width: 2, color: '#b3f4f2ff' } : { width: 0 })
+                .shadow(this.gasHigh(g, nh3) ? { radius: 14, color: '#59ff6b6b' } : { radius: 0, color: Color.Transparent })
+            }
+            .layoutWeight(1)
+            .height('100%')
+            .justifyContent(FlexAlign.End)
+          }, (g: GasDay) => g.day + (nh3 ? 'n' : 'v'))
+        }
+        .width('100%')
+        .height('100%')
+      }
+      .width('100%')
+      .height(GAS_PLOT + 6)
+
+      Row() {
+        ForEach(this.gas(), (g: GasDay) => {
+          Column({ space: 2 }) {
+            Text(weekday(g.day))
+              .fontSize(11)
+              .fontColor(this.isLatest(g) ? C.TEXT : C.MUTED)
+              .fontWeight(this.isLatest(g) ? FontWeight.Bold : FontWeight.Normal)
+            Text(this.gasSub(g, nh3))
+              .fontSize(10)
+              .fontColor(this.gasHigh(g, nh3) ? C.RED : (this.isLatest(g) ? C.TEXT : C.MUTED))
+              .fontWeight(this.gasHigh(g, nh3) || this.isLatest(g) ? FontWeight.Bold : FontWeight.Normal)
+          }
+          .layoutWeight(1)
+        }, (g: GasDay) => g.day + (nh3 ? 'nl' : 'vl'))
+      }
+      .width('100%')
+      .padding({ top: 6 })
+      .margin({ top: 8 })
+      .border({ width: { top: 1 }, color: C.LINE })
+
+      Text(this.gasNote(nh3))
+        .fontSize(13)
+        .lineHeight(19)
+        .fontColor('#d6d2ea')
+        .width('100%')
+        .margin({ top: 12 })
     }
     .width('100%')
+    .padding({ left: 16, right: 16, top: 16, bottom: 14 })
+    .margin({ bottom: 14 })
+    .borderRadius(22)
+    .linearGradient({ direction: GradientDirection.Bottom, colors: [['#221b44', 0], [C.CARD, 1]] })
+    .border({ width: 1, color: C.LINE })
   }
 
   @Builder
@@ -553,14 +717,11 @@ export struct DataTab {
         Text('Unusual colours · tap to learn').label()
         this.unusualUrine()
 
-        Text('Ammonia (NH₃), past 7 days').label()
-        this.gasChart(true)
-        Text(this.nh3Note()).note()
-
-        Text('VOC signal, past 7 days').label()
-        this.gasChart(false)
-        Text('Tracks alongside ammonia: both channels read from the same 8-channel gas array.').note()
-          .margin({ top: 12, bottom: 96 })
+        Text('Gas signals, past 7 days').label()
+        this.gasCard(true, 'Ammonia', 'NH₃ · from protein breakdown')
+        this.gasCard(false, 'VOC signal', 'Volatile organic compounds')
+        Column()
+          .height(82)
       }
       .padding({ left: 18, right: 18, top: 12 })
     }

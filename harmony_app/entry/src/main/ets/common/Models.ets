@@ -68,6 +68,17 @@ export interface GasDay {
   z_VOC: number | null;
 }
 
+// today's personal normal for a gas channel: window median and the reading that counts as high
+export interface GasRef {
+  median: number;
+  alert: number;
+}
+
+export interface GasRefs {
+  NH3: GasRef | null;
+  VOC: GasRef | null;
+}
+
 export interface Visit {
   start_ts: number;
   total_time_s: number | null;
@@ -104,6 +115,7 @@ export interface AppData {
   look: Look;
   urine: Dist;
   gas7: GasDay[];
+  gas_ref?: GasRefs;
   z_threshold: number;
   recent: Visit[];
   system: SystemInfo;

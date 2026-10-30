@@ -281,3 +281,37 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .sheet .disclaimer { color: #6a6878; }
 .account-links { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 0; }
 .account-links a, .account-links button { color: var(--muted); text-decoration: underline; }
+
+/* Gas signal cards: bars from zero with the personal baseline and alert line drawn across */
+.gas-card { margin-bottom: 14px; padding: 16px 16px 14px; border: 1px solid var(--line); border-radius: 22px; background: linear-gradient(180deg, #221b44, var(--card)); }
+.gas-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.gas-card__head h3 { margin: 0; font-size: 17px; }
+.gas-card__head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.gas-card__now { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.gas-card__now b { font-family: var(--serif); font-size: 30px; line-height: 1; font-weight: 600; }
+.gas-card__now b small { font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.gpill { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.gpill.is-ok { background: rgba(94, 224, 160, .16); color: var(--green); }
+.gpill.is-hi { background: rgba(255, 107, 107, .18); color: var(--red); }
+.gpill.is-learn { background: rgba(154, 148, 184, .16); color: var(--muted); }
+.gas-plot { position: relative; }
+.gas-plot__band { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 10px 10px; background: linear-gradient(0deg, rgba(94, 224, 160, .10), rgba(94, 224, 160, .03)); }
+.gas-plot__line { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed; }
+.gas-plot__line.is-base { border-color: rgba(191, 224, 212, .55); }
+.gas-plot__line.is-alert { border-color: rgba(255, 107, 107, .6); }
+.gas-plot__bars { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, 1fr); align-items: end; }
+.gbar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gbar i { width: 58%; max-width: 24px; border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, #bfe0d4, rgba(191, 224, 212, .28)); transition: height .4s ease; }
+.gbar.is-hi i { background: linear-gradient(180deg, #ff8a7a, rgba(255, 181, 71, .55)); box-shadow: 0 0 14px rgba(255, 107, 107, .35); }
+.gbar.is-today i { outline: 2px solid rgba(244, 242, 255, .7); outline-offset: 2px; }
+.gas-plot__days { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 11px; text-align: center; color: var(--muted); }
+.gas-plot__days .is-today { color: var(--text); font-weight: 600; }
+.gas-card__note { margin: 12px 0 0; font-size: 13px; line-height: 1.45; color: #d6d2ea; }
+.gas-legend { display: flex; gap: 16px; margin: -4px 0 12px; font-size: 11px; color: var(--muted); }
+.gas-legend span::before { content: ""; display: inline-block; width: 16px; margin-right: 6px; vertical-align: middle; border-top: 1.5px dashed; }
+.gas-legend .is-base::before { border-color: var(--mint); }
+.gas-legend .is-alert::before { border-color: var(--red); }
+.gas-legend b { color: var(--text); font-weight: 600; }
+.gas-plot__days small { display: block; margin-top: 2px; font-size: 10px; font-weight: 400; color: var(--muted); }
+.gas-plot__days .is-today small { color: var(--text); font-weight: 600; }
+.gas-plot__days .is-hi small { color: var(--red); font-weight: 600; }

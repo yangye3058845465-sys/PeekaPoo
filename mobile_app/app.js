@@ -211,17 +211,50 @@ function renderData(d) {
 
   renderUrine(d);
 
-  gasBars($("#nh3-bars"), d.gas7, "NH3", d.z_threshold);
-  gasBars($("#voc-bars"), d.gas7, "VOC", d.z_threshold);
-  const high = d.gas7.filter(g => g.z_NH3 != null && g.z_NH3 > d.z_threshold).map(g => weekday(g.day));
-  $("#nh3-note").textContent = d.gas_warming_up ? "Still building your personal baseline (needs at least 5 days)."
-    : high.length ? `Above your personal baseline on ${high.join(", ")}. An alert is raised only after 3 days in a row.`
-    : "Within your personal baseline all week.";
+  gasCard($("#gas-nh3"), d, "NH3", "Ammonia", "NH₃ · from protein breakdown");
+  gasCard($("#gas-voc"), d, "VOC", "VOC signal", "Volatile organic compounds");
 }
 
 // Bar heights in px (a % height would shrink every bar equally to make room for the labels).
-// Gas readings sit in a narrow band, so scale over the week's own range instead of from zero.
-const GAS_PLOT = 84, BRISTOL_PLOT = 104;
+const GAS_PLOT = 104, BRISTOL_PLOT = 104;
+
+// one gas channel: today's reading and status, 7 bars from zero, and the personal baseline / alert lines
+function gasCard(el, d, ch, title, sub) {
+  const ref = d.gas_ref && d.gas_ref[ch];
+  const days = d.gas7;
+  const isHi = g => g[`z_${ch}`] != null && g[`z_${ch}`] > d.z_threshold;
+  const vals = days.map(g => g[ch]).filter(v => v != null);
+  const top = Math.max(1, ...vals, ref ? ref.alert : 0) * 1.12;
+  const px = v => Math.round(GAS_PLOT * v / top);
+  const today = days[days.length - 1];
+  const now = today && today[ch] != null ? Math.round(today[ch]) : "–";
+  const status = d.gas_warming_up || !ref ? ["Learning", "is-learn"]
+    : today && isHi(today) ? ["Above baseline", "is-hi"] : ["Within baseline", "is-ok"];
+  const high = days.filter(isHi).map(g => weekday(g.day));
+  const note = d.gas_warming_up || !ref ? "Still building your personal baseline (needs at least 5 days)."
+    : high.length ? `Above your baseline on ${high.join(", ")}. An alert is raised only after 3 days in a row.`
+    : "Within your personal baseline all week.";
+
+  el.innerHTML = `
+    <header class="gas-card__head">
+      <div><h3>${title}</h3><p>${sub}</p></div>
+      <div class="gas-card__now"><b>${now}<small>latest</small></b><span class="gpill ${status[1]}">${status[0]}</span></div>
+    </header>
+    ${ref ? `<div class="gas-legend"><span class="is-base">Your baseline <b>${Math.round(ref.median)}</b></span><span class="is-alert">Alert line <b>${Math.round(ref.alert)}</b></span></div>` : ""}
+    <div class="gas-plot" style="height:${GAS_PLOT + 6}px">
+      ${ref ? `<div class="gas-plot__band" style="height:${px(ref.alert)}px"></div>
+      <div class="gas-plot__line is-alert" style="bottom:${px(ref.alert)}px"></div>
+      <div class="gas-plot__line is-base" style="bottom:${px(ref.median)}px"></div>` : ""}
+      <div class="gas-plot__bars">${days.map((g, i) => {
+        const v = g[ch];
+        return `<div class="gbar ${isHi(g) ? "is-hi" : ""} ${i === days.length - 1 ? "is-today" : ""}">
+          <i style="height:${v == null ? 3 : Math.max(6, px(v))}px"></i></div>`;
+      }).join("")}</div>
+    </div>
+    <div class="gas-plot__days">${days.map((g, i) =>
+      `<span class="${i === days.length - 1 ? "is-today" : ""} ${isHi(g) ? "is-hi" : ""}">${weekday(g.day)}<small>${g[ch] == null ? "–" : Math.round(g[ch])}</small></span>`).join("")}</div>
+    <p class="gas-card__note">${note}</p>`;
+}
 
 // hydration scale the camera grades; the hub's urine levels 1-8 fold into these six tubes
 const URINE_TUBES = [["Clear", "#f4f2ea"], ["Light yellow", "#fbf3b5"], ["Yellow", "#f9ea6b"],
@@ -266,17 +299,6 @@ function renderUnusualUrine() {
   const c = UNUSUAL_URINE[ucolSel];
   $("#ucol-info").innerHTML = `<p><b>${c.name}</b>: often from food. ${c.food}</p><p>${c.doctor}</p>
     <p class="muted small">Reference guide. PeekaPoo's camera grades the hydration scale above, not these colours.</p>`;
-}
-
-function gasBars(el, gas7, ch, thr) {
-  const vals = gas7.map(g => g[ch]).filter(v => v != null);
-  const max = Math.max(1, ...vals), lo = vals.length ? Math.min(...vals) * 0.7 : 0;
-  el.innerHTML = gas7.map(g => {
-    const v = g[ch], hi = g[`z_${ch}`] != null && g[`z_${ch}`] > thr;
-    const h = v == null ? 4 : Math.round(12 + (GAS_PLOT - 12) * (v - lo) / Math.max(1e-6, max - lo));
-    return `<div class="bar ${hi ? "is-hi" : ""}"><i style="height:${h}px"></i>
-      <b>${weekday(g.day).charAt(0)}</b><small>${v == null ? "–" : Math.round(v)}</small></div>`;
-  }).join("");
 }
 
 const LOOK_EMPTY = {

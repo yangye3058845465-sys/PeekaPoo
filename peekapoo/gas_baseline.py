@@ -10,11 +10,15 @@ def session_gas_features(ambient_samples, occupied_samples, channels):
     return {ch: float(v) for ch, v in zip(channels, rise)}
 
 
-def robust_z(value, history):
+def robust_stats(history):
     h = np.asarray(history, dtype=np.float32)
-    med = np.median(h)
-    mad = np.median(np.abs(h - med)) * 1.4826
-    scale = max(mad, 0.05 * abs(med), 1.0)
+    med = float(np.median(h))
+    mad = float(np.median(np.abs(h - med))) * 1.4826
+    return med, max(mad, 0.05 * abs(med), 1.0)
+
+
+def robust_z(value, history):
+    med, scale = robust_stats(history)
     return float((value - med) / scale)
 
 
@@ -38,6 +42,19 @@ class GasBaseline:
                 else:
                     zs[ch] = robust_z(feats[ch], hist)
             out.append((day, zs))
+        return out
+
+    def reference(self, daily_features):
+        """Today's personal normal per channel: the window median and the reading that would count as high."""
+        past = daily_features[max(0, len(daily_features) - 1 - self.window_days):-1]
+        out = {}
+        for ch in self.channels:
+            hist = [f[ch] for _, f in past if ch in f]
+            if len(hist) < self.min_days:
+                out[ch] = None
+                continue
+            med, scale = robust_stats(hist)
+            out[ch] = {"median": round(med, 1), "alert": round(med + self.z_threshold * scale, 1)}
         return out
 
     def evaluate(self, daily_features):

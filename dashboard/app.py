@@ -252,6 +252,7 @@ def app_data():
     urine_groups = {name: sum(s["urine_level"] in levels for s in urine) for name, levels in URINE_GROUPS}
 
     z_by_day = dict(baseline.daily_z([(d["day"], d["gas"]) for d in days]))
+    gas_ref = baseline.reference([(d["day"], d["gas"]) for d in days])
     gas7 = [{"day": d["day"], "NH3": d["gas"].get("NH3"), "VOC": d["gas"].get("VOC"),
              "z_NH3": (z_by_day.get(d["day"]) or {}).get("NH3"),
              "z_VOC": (z_by_day.get(d["day"]) or {}).get("VOC")} for d in days[-7:]]
@@ -276,6 +277,7 @@ def app_data():
         "look": look_distribution(stool),
         "urine": {"counts": urine_groups, "share": _share(urine_groups, len(urine)), "n": len(urine)},
         "gas7": gas7,
+        "gas_ref": {ch: gas_ref.get(ch) for ch in ("NH3", "VOC")},
         "z_threshold": CONFIG.gas_z_threshold,
         "recent": [{k: s.get(k) for k in ("start_ts", "total_time_s", "has_stool", "has_urine", "bristol_type",
                                           "condition", "hydration_score", "digestive_score")}
