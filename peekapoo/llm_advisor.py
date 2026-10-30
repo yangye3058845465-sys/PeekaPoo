@@ -33,51 +33,61 @@ Rules you must follow:
 TASK_REPORT = ("Write a short message for the user about this toilet visit: one sentence explaining the result, "
                "then 2 or 3 short practical tips (water, fibre, movement, routine) that fit the data.")
 
-TASK_STOOL_TODAY = ("The user asked you to analyse their stool. Start by telling them what you noticed "
-                    "(colour, anything visible) and its likely food cause from DATA, then give the result "
-                    "(Bristol type, Digestive Score, hydration), then 2 or 3 short practical tips. "
-                    "Repeat any 'Caution' line from DATA.")
+TASK_STOOL_TODAY = ("The user asked you to analyse their stool. Open warmly with 'I see you had ... recently!' "
+                    "naming every food from the 'Likely food' lines in DATA, then say in one or two sentences what "
+                    "you noticed, then give the result (Bristol type, Digestive Score, hydration), then 2 or 3 short "
+                    "tips. Keep it relaxed and reassuring. End with the 'Gentle note' line from DATA if there is one.")
 
 STOOL_TODAY = re.compile(r"(analy[sz]|check|assess|review|look at|examine).*\b(stool|poo\w*|bowel)|"
                          r"\b(stool|poo\w*)\b.*\btoday|today'?s (stool|poo)|(分析|看看|检查).*(大便|粪便)", re.I)
 
-# what a colour / visible content most often comes from in food, and the tip that goes with it
+# what a colour / visible content says about recent meals: the food ('had'), what was seen, and a tip
 COLOUR_NOTES = {
     "Red-tinged": {
-        "seen": "your stool has a reddish tint",
-        "cause": "most likely from red dragon fruit (pitaya) or beetroot you ate in the last day or two, as their "
-                 "natural red pigment passes straight through and can colour stool and even urine",
+        "had": "dragon fruit",
+        "seen": "Your stool has a reddish tint - that's just the natural pigment of red dragon fruit "
+                "passing through, nothing to worry about.",
         "keyword": "dragon fruit",
-        "caution": "If you have not eaten dragon fruit or beetroot recently, or the red colour is still there "
-                   "after 2 days, please talk to a doctor, because red can also come from blood.",
+        "caution": "Just in case: if you haven't actually had dragon fruit or beetroot and the red colour "
+                   "lasts more than 2 days, it's worth a quick check with a doctor.",
     },
     "Green-ish": {
-        "seen": "your stool looks a little green",
-        "cause": "most likely leafy greens or green-coloured food, or food passing through a bit faster",
+        "had": "some leafy greens",
+        "seen": "They give your stool a slight green tint, which is perfectly normal.",
         "keyword": "green",
     },
     "Black": {
-        "seen": "your stool looks very dark, almost black",
-        "cause": "which can come from iron-rich food, blueberries or black liquorice",
+        "seen": "Your stool looks very dark, almost black. Iron-rich food, blueberries or black liquorice "
+                "can do this.",
         "keyword": "iron",
-        "caution": "If you have not eaten any of these, or you feel weak or dizzy, please contact a doctor "
+        "caution": "If you haven't had any of these, or you feel weak or dizzy, please contact a doctor "
                    "today, because black stool can be a sign of bleeding higher up in the gut.",
     },
     "Yellow": {
-        "seen": "your stool looks yellowish",
-        "cause": "which often follows a rich or fatty meal",
+        "had": "a rich or fatty meal",
+        "seen": "That often gives stool a yellowish look.",
         "keyword": "fatty",
     },
 }
 INCLUSION_NOTES = {
+    "Chilli skin": {
+        "had": "some spicy food",
+        "seen": "I spotted tiny bits of chilli skin too, and spicy food can make stool a little softer, "
+                "which fits today's result.",
+        "keyword": "spicy",
+        "tip": "Spicy food can loosen stools a little - pair it with plain rice, yoghurt or extra water.",
+    },
     "Undigested fibre": {
-        "seen": "some undigested plant fibre",
-        "cause": "probably from vegetables you ate - skins, stalks and leafy parts are often only partly "
-                 "digested, and that is normal",
+        "had": "plenty of vegetables",
+        "seen": "There's a bit of undigested fibre from the veggies as well - completely normal.",
         "keyword": "vegetable",
         "tip": "Chew vegetables well, or cook tougher ones a little longer, so you get more out of them.",
     },
 }
+
+
+def join_words(items):
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def look_notes(session):
@@ -102,9 +112,11 @@ def build_facts(session, days, triage_result):
             if session.get("stool_quantity"):
                 lines.append(f"Stool amount this visit: {session['stool_quantity']}")
             for note in look_notes(session):
-                lines.append(f"Noticed: {note['seen']}; likely cause: {note['cause']}")
+                if note.get("had"):
+                    lines.append(f"Likely food: {note['had']}")
+                lines.append(f"Noticed: {note['seen']}")
                 if note.get("caution"):
-                    lines.append(f"Caution: {note['caution']}")
+                    lines.append(f"Gentle note: {note['caution']}")
             if session.get("digestive_score") is not None:
                 lines.append(f"Digestive Score this visit: {session['digestive_score']} out of 100")
         if session.get("has_urine"):
@@ -261,26 +273,31 @@ def stool_today_report(stool, triage_result, now=None):
         paras.append(f"I don't have a stool visit from today yet, so here is your latest one ({when}).")
 
     notes = look_notes(stool)
+    haves = [n["had"] for n in notes if n.get("had")]
     if notes:
-        seen = f"Oh, I noticed {notes[0]['seen']} - {notes[0]['cause']}."
-        for n in notes[1:]:
-            seen += f" I also spotted {n['seen']}, {n['cause']}."
-        paras.append(seen)
+        opening = f"I see you had {join_words(haves)} recently! " if haves else ""
+        paras.append(opening + " ".join(n["seen"] for n in notes))
     elif stool.get("stool_colour"):
         paras.append(f"Colour looked {stool['stool_colour'].lower()}, and I didn't spot anything unusual in it.")
 
     bt = stool["bristol_type"]
-    feel = "in the typical range" if 3 <= bt <= 5 else ("on the hard side" if bt < 3 else "on the loose side")
-    result = f"Result for {when}: Bristol type {bt} ({CONSISTENCY[bt]}), which is {feel}"
+    feel = "right in the typical range" if 3 <= bt <= 5 else ("on the hard side" if bt < 3 else "on the loose side")
+    result = f"{when.capitalize()}'s result: Bristol type {bt} ({CONSISTENCY[bt]})"
     if stool.get("stool_quantity"):
         result += f", {stool['stool_quantity'].lower()} amount"
-    result += "."
+    result += f" - {feel}."
+    scores = []
     if stool.get("digestive_score") is not None:
-        result += f" Digestive Score {stool['digestive_score']}/100."
+        scores.append(f"Digestive Score {stool['digestive_score']}/100")
     if stool.get("has_urine"):
         hs = stool["hydration_score"]
-        result += f" Hydration Score {hs}/100" + (" - nicely hydrated." if hs >= 65 else
-                                                   (" - a little low." if hs >= 40 else " - low."))
+        scores.append(f"Hydration Score {hs}/100" + (" - nicely hydrated" if hs >= 65 else
+                                                     (" - a little low" if hs >= 40 else " - low")))
+    if scores:
+        result += " " + " and ".join(scores) + "."
+    if (3 <= bt <= 5 and triage_result["level"] == "normal"
+            and (not stool.get("has_urine") or stool["hydration_score"] >= 65)):
+        result += " Overall, your gut looks happy today."
     paras.append(result)
 
     tips = [n["tip"] for n in notes if n.get("tip")]
@@ -294,14 +311,15 @@ def stool_today_report(stool, triage_result, now=None):
         tips.append("Keep up your current routine of water, fibre and movement.")
     elif len(tips) < 2:
         tips.append("Keep drinking water through the day - fibre works best with enough fluid.")
-    paras.append("My suggestions:\n" + "\n".join("- " + t for t in tips[:3]))
+    paras.append("A few tips:\n" + "\n".join("- " + t for t in tips[:3]))
 
     cautions = [n["caution"] for n in notes if n.get("caution")]
     if triage_result["level"] == "consult":
-        cautions.append("Because some readings have been off for several days, it is a good idea to talk "
-                        "to a doctor or healthcare professional.")
+        cautions.append("Some readings have been off for several days, so it would be a good idea to check in "
+                        "with a doctor.")
     elif triage_result["level"] == "watch":
-        cautions.append("Some readings have been a little off recently - I'll keep an eye on them over the next few days.")
+        cautions.append("A few other readings have been slightly off lately - nothing to worry about yet, "
+                        "I'll keep an eye on them.")
     if cautions:
         paras.append(" ".join(cautions))
     return "\n\n".join(paras)

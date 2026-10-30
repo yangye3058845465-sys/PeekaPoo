@@ -7,7 +7,7 @@ from .scoring import digestive_score
 from .urine import hydration_score
 
 # healthy: all normal · ammonia_high: only NH3 rises for the last 3 days · constipation_gas: hard stools, dark urine, gases up
-# dragon_fruit: healthy week, then a red-tinged stool with visible fibre this morning (red dragon fruit + vegetables)
+# dragon_fruit: healthy week, then a red-tinged stool with chilli skin and fibre this morning (dragon fruit, spicy food, vegetables)
 SCENARIOS = ("healthy", "ammonia_high", "constipation_gas", "dragon_fruit")
 
 STOOL_COLOURS = ("Brown", "Light brown", "Dark brown", "Green-ish")
@@ -63,5 +63,5 @@ def seed_history(store, user, days=14, scenario="healthy", seed=0):
     if scenario == "dragon_fruit":
         rec = fake_session(user, now - 2 * 3600, 5, 3, rng.uniform(0.9, 1.1), rng)
         rec["stool_colour"], rec["stool_quantity"] = "Red-tinged", "Large"
-        rec["stool_inclusions"] = ["Undigested fibre"]
+        rec["stool_inclusions"] = ["Chilli skin", "Undigested fibre"]
         store.add(rec)
