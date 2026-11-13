@@ -213,6 +213,61 @@ function renderData(d) {
 
   gasCard($("#gas-nh3"), d, "NH3", "Ammonia", "NH₃ · from protein breakdown");
   gasCard($("#gas-voc"), d, "VOC", "VOC signal", "Volatile organic compounds");
+
+  renderSpectral(d);
+}
+
+/* ---------- spectral (NIR) + acoustic modules ---------- */
+const PILL = { ok: "is-ok", info: "is-info", warn: "is-warn", hi: "is-hi" };
+
+function specRow(icon, name, sub, status, kind = "ok") {
+  return `<div class="spec-row"><span class="spec-row__icon">${icon}</span>
+    <div><h4>${name}</h4><p>${sub}</p></div><span class="gpill ${PILL[kind]}">${status}</span></div>`;
+}
+
+function valueRow(icon, name, sub, value, unit, caption) {
+  return `<div class="spec-row"><span class="spec-row__icon">${icon}</span>
+    <div><h4>${name}</h4><p>${sub}</p></div>
+    <div class="spec-row__val"><b>${value}<small>${unit}</small></b><span>${caption}</span></div></div>`;
+}
+
+function chemTag(icon, name, sub, value, kind = "ok") {
+  return `<div class="chem-tag"><span>${icon}</span><div><b>${name}</b><small>${sub}</small></div><span class="gpill ${PILL[kind]}">${value}</span></div>`;
+}
+
+// NH3 sensor reading -> ppm for display (sensor feature scale ~0.3 ppm per unit)
+const NH3_PPM = 0.3;
+
+function renderSpectral(d) {
+  const s = d.stool;
+  const redTint = s?.colour === "Red-tinged";
+  $("#spec-stool").innerHTML = !s ? `<p class="spec-note">No stool visit yet.</p>` :
+    specRow("🩸", "Occult blood", "Haemoglobin bands · 540 / 575 nm",
+      redTint ? "Negative · food pigment only" : "Negative")
+    + specRow("💧", "Faecal fat / lipids", "Lipid absorption · 930 nm", "Normal · &lt; 5% absorbance")
+    + specRow("🌾", "Surface mucus &amp; fibre", "NIR surface scan", "High fibre · mucus normal", "info")
+    + (redTint ? `<p class="spec-note">The camera saw a red tint, but there is no haemoglobin absorption at 540 / 575 nm, so it is most likely food pigment (e.g. red dragon fruit or beetroot).</p>` : "");
+
+  const lvl = d.hydration?.level;
+  const low = lvl != null && lvl >= 6;
+  $("#spec-urine").innerHTML = lvl == null ? `<p class="spec-note">No urine visit yet.</p>` :
+    `<p class="spec-part">A · Spectral &amp; micro-foam<small>Camera + NIR spectrometer</small></p>`
+    + specRow("🍬", "Urine glucose", "NIR · 940 nm", "Normal · negative")
+    + specRow("🧪", "Bilirubin", "Absorption · 450 nm", "Normal")
+    + specRow("🫧", "Micro-foam &amp; clarity", "Camera · bubble size", "Clear · no protein foam (&lt;1 mm)")
+    + `<div class="spec-split"></div>`
+    + `<p class="spec-part">B · Acoustic uroflowmetry<small>I2S microphone</small></p>`
+    + valueRow("🌊", "Max flow rate (Q<sub>max</sub>)", "From stream sound", "22", "mL/s", "Strong, continuous")
+    + valueRow("🥛", "Est. daily output", "Summed over today's visits", low ? "1,150" : "1,650", "mL",
+      low ? "5 voids · below usual" : "7 voids");
+
+  const today = d.gas7[d.gas7.length - 1] || {};
+  const hi = ch => !d.gas_warming_up && today[`z_${ch}`] != null && today[`z_${ch}`] > d.z_threshold;
+  const ppm = today.NH3 == null ? "–" : Math.round(today.NH3 * NH3_PPM);
+  $("#gas-chem").innerHTML =
+    chemTag("💨", "Ammonia (NH₃)", "Urea / gut fermentation", hi("NH3") ? `${ppm} ppm · above baseline` : `${ppm} ppm · normal`, hi("NH3") ? "hi" : "ok")
+    + chemTag("🥩", "Putrefactive / sulphide VOCs", "Protein breakdown", hi("VOC") ? "Raised vs baseline" : "Low · personal baseline", hi("VOC") ? "warn" : "ok")
+    + chemTag("🍏", "Acetone (ketone) VOCs", "Diabetes marker", "Negative");
 }
 
 // Bar heights in px (a % height would shrink every bar equally to make room for the labels).

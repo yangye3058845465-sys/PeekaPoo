@@ -1,4 +1,4 @@
-const CACHE = "peekapoo-v1";
+const CACHE = "peekapoo-v2";
 const SHELL = ["./", "index.html", "app.css", "app.js", "bristol.js", "manifest.webmanifest", "icons/bot.svg", "icons/icon-192.png"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))));
